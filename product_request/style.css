@@ -1,0 +1,183 @@
+/* Global page styling scoped under .product-request */
+.product-request {
+    width: 100%;
+    margin: 20px auto;
+    padding: 10px;
+    font-family: Arial, sans-serif;
+    background-color: #f8f8f8;
+  }
+  
+  /* Sticky Controls styling for top buttons */
+  .product-request .controls {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #f8f8f8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+  }
+  
+  .product-request .controls button {
+    background-color: #0078D4;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .product-request .controls button:hover {
+    background-color: #005A9E;
+  }
+  
+  /* Dynamic form container styling */
+  .product-request #dynamicForm {
+    width: 100%;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  
+  /* Header row styling for column headers within the dynamic form */
+  .product-request #dynamicForm .header-row {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-weight: bold;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+  }
+  .product-request #dynamicForm .header-row > div {
+    flex: 1;
+    min-width: 150px;
+  }
+  .product-request #dynamicForm .header-row div button.apply-all {
+    margin-top: 5px;
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    background-color: #0078D4;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .product-request #dynamicForm .header-row div button.apply-all:hover {
+    background-color: #005A9E;
+  }
+  
+  /* Row styling within the dynamic form */
+  .product-request #dynamicForm .row {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .product-request #dynamicForm .row > div {
+    flex: 1;
+    min-width: 150px;
+  }
+  
+  /* Input and select styling specific to the dynamic form */
+  .product-request #dynamicForm input[type="text"],
+  .product-request #dynamicForm input[type="number"],
+  .product-request #dynamicForm select {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  /* Select2 specific styling for a uniform look */
+  .select2-container--default .select2-selection--single {
+    min-height: 38px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: normal;
+    padding-left: 0;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: auto;
+    align-self: center;
+  }
+  
+  /* Button styling for form buttons within the dynamic form */
+  .product-request #dynamicForm button {
+    background-color: #0078D4;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .product-request #dynamicForm button:hover {
+    background-color: #005A9E;
+  }
+  
+  /* Error field styling */
+  input.error, select.error {
+    border: 2px solid red;
+  }
+  
+  /* Error message styling */
+  .error-message {
+    color: red;
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  
+  /* Highlight entire row if SKU already exists */
+  .row.danger {
+    background-color: #f8d7da;
+  }
+  
+  /* Loader Modal styling */
+  #loaderModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: none; /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  #loaderModal .loader-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    text-align: center;
+  }
+  .loader-spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #0078D4;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px auto;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
