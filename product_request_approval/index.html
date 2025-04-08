@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product Requests Table</title>
+  <!-- Bootstrap CSS for table styling -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <!-- Firebase Firestore SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+<body>
+  <div class="container my-4">
+    <table class="table table-striped table-bordered" id="productTable">
+      <thead>
+        <tr>
+          <th>
+            <input type="checkbox" id="selectAll" />
+          </th>
+          <th>SKU</th>
+          <th>Product Name</th>
+          <th>Brand</th>
+          <th>Primary Supplier</th>
+          <th>Purchase Price</th>
+          <th>RRP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Table rows will be populated dynamically from Firestore -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Load external script file -->
+  <script src="script.js"></script>
+</body>
+</html>
