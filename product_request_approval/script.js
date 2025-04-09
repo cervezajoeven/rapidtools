@@ -16,10 +16,12 @@ const db = firebase.firestore();
 // Global variables for the API responses
 let brandsList = [];
 let supplierList = [];
+let categoriesList = [];
 
-// API endpoints for brands and suppliers
+// API endpoints
 const brandsUrl = 'https://prod-06.australiasoutheast.logic.azure.com:443/workflows/58215302c1c24203886ccf481adbaac5/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=RFQ4OtbS6cyjB_JzaIsowmww4KBqPQgavWLg18znE5s';
 const supplierUrl = 'https://prod-06.australiasoutheast.logic.azure.com:443/workflows/da5c5708146642768d63293d2bbb9668/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-n0W0PxlF1G83xHYHGoEOhv3XmHXWlesbRk5NcgNT9w';
+const categoriesUrl = 'https://prod-47.australiasoutheast.logic.azure.com:443/workflows/0d67bc8f1bb64e78a2495f13a7498081/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=fJJzmNyuARuwEcNCoMuWwMS9kmWZQABw9kJXsUj9Wk8';
 
 // SKU verification API endpoint
 const skuVerificationUrl = 'https://prod-03.australiasoutheast.logic.azure.com:443/workflows/151bc47e0ba4447b893d1c9fea9af46f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bRyr_oW-ud06XlU5VLhBqQ7tyU__jD3clEOGIEhax-Q';
@@ -63,11 +65,29 @@ fetch(supplierUrl, { method: 'POST' })
   .catch(error => console.error('Error fetching supplier list:', error));
 
 // ----------------------------------------------------------------------------
+// Fetch Categories List
+fetch(categoriesUrl, { method: 'POST' })
+  .then(response => response.json())
+  .then(apiResponse => {
+    if (
+      apiResponse.status === 200 &&
+      apiResponse.message &&
+      apiResponse.message.Category &&
+      Array.isArray(apiResponse.message.Category)
+    ) {
+      categoriesList = apiResponse.message.Category;
+      updateCategorySelects();
+    } else {
+      console.error('Unexpected categories API response:', apiResponse);
+    }
+  })
+  .catch(error => console.error('Error fetching categories:', error));
+
+// ----------------------------------------------------------------------------
 // Helper: Update all Brand dropdowns
 function updateBrandSelects() {
   const brandSelects = document.querySelectorAll("select.brandSelect");
   brandSelects.forEach(select => {
-    // Retrieve the current selected value stored in a data attribute.
     const currentValue = select.getAttribute("data-selected") || "";
     select.innerHTML = "";
     const placeholderOption = document.createElement("option");
@@ -91,7 +111,6 @@ function updateBrandSelects() {
 function updateSupplierSelects() {
   const supplierSelects = document.querySelectorAll("select.supplierSelect");
   supplierSelects.forEach(select => {
-    // Retrieve the current selected value stored in a data attribute.
     const currentValue = select.getAttribute("data-selected") || "";
     select.innerHTML = "";
     const placeholderOption = document.createElement("option");
@@ -103,6 +122,29 @@ function updateSupplierSelects() {
       option.value = supplier.SupplierID;
       option.textContent = supplier.SupplierID;
       if (currentValue === supplier.SupplierID) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Helper: Update all Category dropdowns
+function updateCategorySelects() {
+  const categorySelects = document.querySelectorAll("select.categorySelect");
+  categorySelects.forEach(select => {
+    const currentValue = select.getAttribute("data-selected") || "";
+    select.innerHTML = "";
+    const placeholderOption = document.createElement("option");
+    placeholderOption.value = "";
+    placeholderOption.textContent = "Select Category";
+    select.appendChild(placeholderOption);
+    categoriesList.forEach(category => {
+      const option = document.createElement("option");
+      option.value = category.CategoryName;
+      option.textContent = category.CategoryName;
+      if (currentValue === category.CategoryName) {
         option.selected = true;
       }
       select.appendChild(option);
@@ -143,7 +185,6 @@ function createTableRow(data) {
   const brandTd = document.createElement("td");
   const brandSelect = document.createElement("select");
   brandSelect.classList.add("brandSelect");
-  // Store the current brand value (if any) for later use.
   brandSelect.setAttribute("data-selected", data.brand || "");
   brandTd.appendChild(brandSelect);
   tr.appendChild(brandTd);
@@ -152,10 +193,17 @@ function createTableRow(data) {
   const primarySupplierTd = document.createElement("td");
   const primarySupplierSelect = document.createElement("select");
   primarySupplierSelect.classList.add("supplierSelect");
-  // Store the current supplier value (if any) for later use.
   primarySupplierSelect.setAttribute("data-selected", data.primary_supplier || "");
   primarySupplierTd.appendChild(primarySupplierSelect);
   tr.appendChild(primarySupplierTd);
+
+  // Category column as a dropdown (new column added after Primary Supplier).
+  const categoryTd = document.createElement("td");
+  const categorySelect = document.createElement("select");
+  categorySelect.classList.add("categorySelect");
+  categorySelect.setAttribute("data-selected", data.category || "");
+  categoryTd.appendChild(categorySelect);
+  tr.appendChild(categoryTd);
 
   // Purchase Price column as an editable input field.
   const purchasePriceTd = document.createElement("td");
@@ -210,7 +258,7 @@ function createTableRow(data) {
   let clientUpdating = false;
   let retailUpdating = false;
 
-  // Update calculated fields when Purchase Price changes.
+  // When Purchase Price changes, update calculated fields.
   purchasePriceInput.addEventListener("input", function () {
     const purchasePrice = parseFloat(purchasePriceInput.value);
     const clientMup = parseFloat(clientMupInput.value);
@@ -229,7 +277,7 @@ function createTableRow(data) {
     }
   });
 
-  // Update Client Price when Client MUP changes.
+  // When Client MUP changes, update Client Price.
   clientMupInput.addEventListener("input", function () {
     if (clientUpdating) return;
     clientUpdating = true;
@@ -244,7 +292,7 @@ function createTableRow(data) {
     clientUpdating = false;
   });
 
-  // Update Client MUP when Client Price changes.
+  // When Client Price changes, update Client MUP.
   clientPriceInput.addEventListener("input", function () {
     if (clientUpdating) return;
     clientUpdating = true;
@@ -259,7 +307,7 @@ function createTableRow(data) {
     clientUpdating = false;
   });
 
-  // Update RRP when Retail MUP changes.
+  // When Retail MUP changes, update RRP.
   retailMupInput.addEventListener("input", function () {
     if (retailUpdating) return;
     retailUpdating = true;
@@ -274,7 +322,7 @@ function createTableRow(data) {
     retailUpdating = false;
   });
 
-  // Update Retail MUP when RRP changes.
+  // When RRP changes, update Retail MUP.
   rrpInput.addEventListener("input", function () {
     if (retailUpdating) return;
     retailUpdating = true;
@@ -318,6 +366,9 @@ db.collection("product_requests")
     if (supplierList.length > 0) {
       updateSupplierSelects();
     }
+    if (categoriesList.length > 0) {
+      updateCategorySelects();
+    }
   })
   .catch(error => {
     console.error("Error fetching documents: ", error);
@@ -348,7 +399,7 @@ function submitCheckedRows() {
 
   checkedCheckboxes.forEach(checkbox => {
     const row = checkbox.closest("tr");
-    // Assuming the SKU input is in the second cell (index 1).
+    // Assuming the SKU input is in the second cell.
     const skuInput = row.querySelector("td:nth-child(2) input");
     if (skuInput && skuInput.value.trim() !== "") {
       skuArray.push(skuInput.value.trim());
@@ -371,15 +422,12 @@ function submitCheckedRows() {
     .then(response => response.json())
     .then(apiResponse => {
       if (apiResponse.Ack === "Success" && Array.isArray(apiResponse.Item)) {
-        // Create a set of returned SKUs for easy lookup.
         const returnedSKUs = new Set(apiResponse.Item.map(item => item.SKU));
-        // Verify that each submitted SKU exists in the response.
         const missingSKUs = skuArray.filter(sku => !returnedSKUs.has(sku));
 
         if (missingSKUs.length > 0) {
           alert("The following SKU(s) were not found: " + missingSKUs.join(", "));
         } else {
-          // All SKUs validated successfully.
           alert("All SKUs validated and submission complete.");
           // TODO: Implement further submission logic as needed.
         }
