@@ -21,14 +21,15 @@
     #productTable td, #productTable th {
       word-wrap: break-word;
     }
-    /* Make all number input fields fit the width of their cell */
-    #productTable input[type="number"] {
+    /* Make all input fields and dropdowns (select elements) fit the width of their cell */
+    #productTable input,
+    #productTable select {
       width: 100%;
       box-sizing: border-box;
     }
     /* Reduce the width of the first column (checkbox column) */
     #productTable th:first-child, #productTable td:first-child {
-      width: 50px; /* Adjust this value as needed */
+      width: 50px;
       max-width: 50px;
       padding: 0.5rem;
       text-align: center;
