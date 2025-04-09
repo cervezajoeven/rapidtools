@@ -1,33 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Product Requests Table</title>
-  <!-- Bootstrap CSS for table styling -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <!-- Firebase App (the core Firebase SDK) -->
+  <!-- Bootstrap CSS for styling -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <!-- Firebase App (the core Firebase SDK) is still loaded globally -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <!-- Firebase Firestore SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <style>
-    /* Set the table to 95% width of the page */
+    /* Table styling */
     #productTable {
       width: 95%;
       table-layout: fixed;
       margin: auto;
     }
-    /* Prevent long words from breaking layout */
     #productTable td, #productTable th {
       word-wrap: break-word;
     }
-    /* Make all input fields and dropdowns (select elements) fit the width of their cell */
     #productTable input,
     #productTable select {
       width: 100%;
       box-sizing: border-box;
     }
-    /* Reduce the width of the first column (checkbox column) */
     #productTable th:first-child, #productTable td:first-child {
       width: 50px;
       max-width: 50px;
@@ -50,20 +47,26 @@
           <th>Primary Supplier</th>
           <th>Category</th>
           <th>Purchase Price</th>
-          <!-- New columns added between Purchase Price and RRP -->
-          <th>Client MUP</th>
-          <th>Retail MUP</th>
+          <th>
+            Client MUP
+            <button type="button" id="applyClientMupBtn" style="margin-left: 10px; font-size: 0.8rem;">Apply All</button>
+          </th>
+          <th>
+            Retail MUP
+            <button type="button" id="applyRetailMupBtn" style="margin-left: 10px; font-size: 0.8rem;">Apply All</button>
+          </th>
           <th>Client Price</th>
           <th>RRP</th>
         </tr>
       </thead>
+      
       <tbody>
-        <!-- Table rows will be populated dynamically from Firestore -->
+        <!-- Table rows will be added dynamically -->
       </tbody>
     </table>
   </div>
 
-  <!-- Load external script file -->
-  <script src="script.js"></script>
+  <!-- Import the main entry module -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
