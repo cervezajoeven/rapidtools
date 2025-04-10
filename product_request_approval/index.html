@@ -31,9 +31,27 @@
       padding: 0.5rem;
       text-align: center;
     }
+   
+    
+    /* Sticky container for the submit button */
+    .submit-btn-container {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: #fff;  /* A background color helps it stand out */
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    input {
+      width: 100%;
+    }
   </style>
 </head>
 <body>
+  <!-- Sticky container for Submit button -->
+  <div class="submit-btn-container">
+    <button id="submitChecked" type="button" class="btn btn-primary">Submit Checked Rows</button>
+  </div>
   <div class="table-responsive">
     <table class="table table-striped table-bordered" id="productTable">
       <thead>
@@ -65,8 +83,7 @@
       </tbody>
     </table>
   </div>
-
-  <!-- Import the main entry module -->
-  <script type="module" src="js/main.js"></script>
+  <!-- Your JS script will be included at the end of the body or in a separate file -->
+  <script src="script.js"></script>
 </body>
 </html>
