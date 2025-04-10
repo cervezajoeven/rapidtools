@@ -1,48 +1,170 @@
-<meta charset="UTF-8" /><title>Dynamic Fields Form</title
-    ><!-- Select2 CSS --><link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" /><!-- Custom CSS --><link rel="stylesheet" href="style.css" />
-    <div class="product-request">
-      <!-- Sticky Controls -->
-      <div class="controls"><button id="addRowBtn">Add Row</button><button type="submit" form="dynamicForm" id="submitBtn">Submit</button></div>
-      <!-- Legend -->
-      <div class="legend"><span>Product Exists</span></div>
-      <!-- Dynamic Form -->
-      <form id="dynamicForm" style="width: 100%; background-image: initial; background-position-x: initial; background-position-y: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial; background-color: rgb(255, 255, 255); padding-top: 20px; padding-right: 20px; padding-bottom: 20px; padding-left: 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; border-bottom-right-radius: 8px; border-bottom-left-radius: 8px; box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 10px;">
-        <div class="header-row" style="width: 100%; display: flex; flex-wrap: wrap; row-gap: 10px; column-gap: 10px; font-weight: bold; border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: rgb(221, 221, 221); padding-bottom: 5px; margin-bottom: 10px;">
-          <div style="flex-grow: 1; flex-shrink: 1; flex-basis: 0%; min-width: 150px;">SKU</div>
-          <div style="flex-grow: 1; flex-shrink: 1; flex-basis: 0%; min-width: 150px;">Product Name</div>
-          <div style="flex-grow: 1; flex-shrink: 1; flex-basis: 0%; min-width: 150px;">
-            <div>Brand</div>
-            <button data-target="brand" class="apply-all" style="margin-top: 5px; font-size: 0.8rem; padding-top: 4px; padding-right: 8px; padding-bottom: 4px; padding-left: 8px; background-color: rgb(0, 120, 212); color: rgb(255, 255, 255); border-top-width: initial; border-right-width: initial; border-bottom-width: initial; border-left-width: initial; border-top-style: none; border-right-style: none; border-bottom-style: none; border-left-style: none; border-top-color: initial; border-right-color: initial; border-bottom-color: initial; border-left-color: initial; border-image-source: initial; border-image-slice: initial; border-image-width: initial; border-image-outset: initial; border-image-repeat: initial; border-top-left-radius: 4px; border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-bottom-left-radius: 4px; cursor: pointer;">Apply to All</button>
-          </div>
-          <div style="flex-grow: 1; flex-shrink: 1; flex-basis: 0%; min-width: 150px;">
-            <div>Primary Supplier</div>
-            <button data-target="supplier" class="apply-all" style="margin-top: 5px; font-size: 0.8rem; padding-top: 4px; padding-right: 8px; padding-bottom: 4px; padding-left: 8px; background-color: rgb(0, 120, 212); color: rgb(255, 255, 255); border-top-width: initial; border-right-width: initial; border-bottom-width: initial; border-left-width: initial; border-top-style: none; border-right-style: none; border-bottom-style: none; border-left-style: none; border-top-color: initial; border-right-color: initial; border-bottom-color: initial; border-left-color: initial; border-image-source: initial; border-image-slice: initial; border-image-width: initial; border-image-outset: initial; border-image-repeat: initial; border-top-left-radius: 4px; border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-bottom-left-radius: 4px; cursor: pointer;">Apply to All</button>
-          </div>
-          <div style="flex-grow: 1; flex-shrink: 1; flex-basis: 0%; min-width: 150px;">Purchase Price</div>
-          <div style="flex-grow: 1; flex-shrink: 1; flex-basis: 0%; min-width: 150px;">RRP (if available)</div>
-          <div style="flex-grow: 1; flex-shrink: 1; flex-basis: 0%; min-width: 150px;">Action</div>
-        </div>
-        <div id="rowsContainer"><!-- Dynamic rows will be appended here --></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dynamic Fields Form</title>
+  <!-- Select2 CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Internal styles for the user info form and centering -->
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    /* Wrapper to center the user info form */
+    .center-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 10px; /* optional padding to prevent overflow on very small screens */
+    }
+    /* Style for the user information container */
+    .user-info-container {
+      background: #ffffff;
+      padding: 20px 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      text-align: center;
+    }
+    .user-info-container h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      color: #333;
+    }
+    .user-info-container label {
+      display: block;
+      text-align: left;
+      margin-bottom: 6px;
+      font-weight: bold;
+      color: #555;
+    }
+    .user-info-container input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .user-info-container button {
+      width: 100%;
+      padding: 10px;
+      background-color: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .user-info-container button:hover {
+      background-color: #005ea6;
+    }
+    /* Hide the user info section if user data is already stored */
+    #userInfoSection.hidden {
+      display: none;
+    }
+    /* The product request container remains styled as before */
+    #productRequestContainer {
+      display: none; /* will be toggled by script.js once user info is provided */
+    }
+    /* Loader Modal Styling */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- User Information Section: Centered Wrapper -->
+  <div id="userInfoSection" class="center-wrapper">
+    <div class="user-info-container">
+      <h2>Enter Your Info</h2>
+      <form id="userInfoForm">
+        <label for="firstName">First Name:</label>
+        <input type="text" id="firstName" name="firstName" required />
+        
+        <label for="lastName">Last Name:</label>
+        <input type="text" id="lastName" name="lastName" required />
+        
+        <label for="email">Email Address:</label>
+        <input type="email" id="email" name="email" required />
+        
+        <button type="submit" id="saveUserInfoBtn">Save Info</button>
       </form>
     </div>
-    <!-- Loader Modal -->
-    <div id="loaderModal" style="position: fixed; top: 0px; left: 0px; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 9999;">
-      <div class="loader-content" style="background-image: initial; background-position-x: initial; background-position-y: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial; background-color: rgb(255, 255, 255); padding-top: 20px; padding-right: 20px; padding-bottom: 20px; padding-left: 20px; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px; text-align: center;">
-        <div class="loader-spinner" style="border-right-width: 8px; border-bottom-width: 8px; border-left-width: 8px; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-right-color: rgb(243, 243, 243); border-bottom-color: rgb(243, 243, 243); border-left-color: rgb(243, 243, 243); border-image-source: initial; border-image-slice: initial; border-image-width: initial; border-image-outset: initial; border-image-repeat: initial; border-top-width: 8px; border-top-style: solid; border-top-color: rgb(0, 120, 212); border-top-left-radius: 50%; border-top-right-radius: 50%; border-bottom-right-radius: 50%; border-bottom-left-radius: 50%; width: 60px; height: 60px; animation-duration: 1s; animation-timing-function: linear; animation-delay: 0s; animation-iteration-count: infinite; animation-direction: normal; animation-fill-mode: none; animation-play-state: running; animation-name: spin; animation-timeline: auto; animation-range-start: normal; animation-range-end: normal; margin-top: 0px; margin-right: auto; margin-bottom: 10px; margin-left: auto;"></div>
-        <div>Processing...</div>
-      </div>
-    </div>
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Select2 JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-    <!-- Firebase SDKs (v8 since we're using older syntax) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- Your Custom Script -->
-    <script src="script.js"></script>
+  </div>
 
-    <div class="row sectionBlockLayout text-start" style="display: flex; flex-wrap: wrap; margin: 0px; min-height: auto; padding: 8px;">
-      <div class="container" style="padding: 0px; display: flex; flex-wrap: wrap;"><div class="col-lg-12 columnBlockLayout" style="flex-grow: 1; display: flex; flex-direction: column; min-width: 250px;"></div></div>
+  <!-- Saved User Info Display (hidden by default) -->
+  <div id="savedUserInfo" style="display: none; margin: 20px;">
+    <span id="userDisplay"></span>
+    <button id="editUserInfoBtn" style="padding: 6px 12px; background-color: #0078d4; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Edit Info</button>
+  </div>
+
+  <!-- Product Request Form Container (will be shown after user info is saved) -->
+  <div id="productRequestContainer">
+    <div class="product-request">
+      <!-- Sticky Controls -->
+      <div class="controls" style="margin-bottom: 10px;">
+        <button id="addRowBtn" style="padding: 8px 12px;">Add Row</button>
+        <button type="submit" form="dynamicForm" id="submitBtn" style="padding: 8px 12px;">Submit</button>
+      </div>
+      <!-- Legend -->
+      <div class="legend" style="margin-bottom: 10px;"><span>Product Exists</span></div>
+      <!-- Dynamic Form -->
+      <form id="dynamicForm" style="width: 100%; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 10px;">
+        <div class="header-row" style="width: 100%; display: flex; flex-wrap: wrap; gap: 10px; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 10px;">
+          <div style="flex-grow: 1; min-width: 150px;">SKU</div>
+          <div style="flex-grow: 1; min-width: 150px;">Product Name</div>
+          <div style="flex-grow: 1; min-width: 150px;">
+            <div>Brand</div>
+            <button data-target="brand" class="apply-all" style="margin-top: 5px; font-size: 0.8rem; padding: 4px 8px; background-color: #0078d4; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Apply to All</button>
+          </div>
+          <div style="flex-grow: 1; min-width: 150px;">
+            <div>Primary Supplier</div>
+            <button data-target="supplier" class="apply-all" style="margin-top: 5px; font-size: 0.8rem; padding: 4px 8px; background-color: #0078d4; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Apply to All</button>
+          </div>
+          <div style="flex-grow: 1; min-width: 150px;">Purchase Price</div>
+          <div style="flex-grow: 1; min-width: 150px;">RRP (if available)</div>
+          <div style="flex-grow: 1; min-width: 150px;">Action</div>
+        </div>
+        <div id="rowsContainer">
+          <!-- Dynamic rows will be appended here -->
+        </div>
+      </form>
     </div>
-    
+  </div>
+
+  <!-- Loader Modal -->
+  <div id="loaderModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; z-index: 9999;">
+    <div class="loader-content" style="background-color: #ffffff; padding: 20px; border-radius: 5px; text-align: center;">
+      <div class="loader-spinner" style="width: 60px; height: 60px; border: 8px solid #f3f3f3; border-top: 8px solid #0078d4; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
+      <div>Processing...</div>
+    </div>
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- Select2 JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+  <!-- Firebase SDKs (v8) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- Your Custom Script -->
+  <script src="script.js"></script>
+
+  <!-- Optional container for additional content -->
+  <div class="row sectionBlockLayout text-start" style="display: flex; flex-wrap: wrap; margin: 0; min-height: auto; padding: 8px;">
+    <div class="container" style="padding: 0; display: flex; flex-wrap: wrap;">
+      <div class="col-lg-12 columnBlockLayout" style="flex-grow: 1; display: flex; flex-direction: column; min-width: 250px;"></div>
+    </div>
+  </div>
+</body>
+</html>

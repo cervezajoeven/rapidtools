@@ -1,17 +1,17 @@
-$(function() {
+$(document).ready(function() {
   /*==========================================
     Global Variables, API Endpoints and Firebase Setup
   ==========================================*/
-  // Arrays to hold fetched data.
   let brands = [];
   let suppliers = [];
+  let rowCount = 0;
+  // Global variable to store the current user's info.
+  let currentUser = null;
 
-  // API endpoint URLs.
   const brandsUrl = 'https://prod-06.australiasoutheast.logic.azure.com:443/workflows/58215302c1c24203886ccf481adbaac5/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=RFQ4OtbS6cyjB_JzaIsowmww4KBqPQgavWLg18znE5s';
   const suppliersUrl = 'https://prod-06.australiasoutheast.logic.azure.com:443/workflows/da5c5708146642768d63293d2bbb9668/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-n0W0PxlF1G83xHYHGoEOhv3XmHXWlesbRk5NcgNT9w';
   const skuCheckUrl = 'https://prod-03.australiasoutheast.logic.azure.com:443/workflows/151bc47e0ba4447b893d1c9fea9af46f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bRyr_oW-ud06XlU5VLhBqQ7tyU__jD3clEOGIEhax-Q';
 
-  // Firebase configuration object.
   const firebaseConfig = {
     apiKey: "AIzaSyAfcffroNPQiXxSZmk7ahUJ_5ez9eO3CCQ",
     authDomain: "rapidclean-ba9be.firebaseapp.com",
@@ -26,13 +26,26 @@ $(function() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Default email address for summary email.
-  let summaryEmail = "your.email@example.com";
+  /*==========================================
+    Initial UI Setup: Hide sections until needed
+  ==========================================*/
+  $("#savedUserInfo, #productRequestContainer, #dynamicForm").hide();
+  // Always show the user info form on load.
+  $("#userInfoSection").show();
 
   /*==========================================
-    Utility Functions
+    Helper Functions
   ==========================================*/
-  // Format a number with commas and two decimals.
+  // Display user info on successful submission/retrieval.
+  function displaySavedUser(userInfo) {
+    $("#userDisplay").text(`Hello, ${userInfo.firstName} ${userInfo.lastName} (${userInfo.email})`);
+    $("#userInfoSection").hide();
+    $("#savedUserInfo").show();
+    $("#productRequestContainer").show();
+    $("#dynamicForm").show();
+  }
+
+  // Format numbers with commas and two decimals.
   function formatNumber(num) {
     if (typeof num === 'number' && !isNaN(num)) {
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -44,59 +57,23 @@ $(function() {
   function showLoader() {
     $('#loaderModal').css('display', 'flex');
   }
-
   function hideLoader() {
     $('#loaderModal').css('display', 'none');
   }
 
-  /*==========================================
-    Data Fetching and Initialization with Loader
-  ==========================================*/
-  showLoader(); // Start loader before data fetch.
-  let brandsRequest = $.ajax({ url: brandsUrl, method: 'POST' });
-  let suppliersRequest = $.ajax({ url: suppliersUrl, method: 'POST' });
+  // Initialize select inputs using select2.
+  function initSelect($select, data) {
+    $select.empty().append('<option></option>');
+    data.forEach(item => {
+      $select.append(`<option value="${item.id}">${item.text}</option>`);
+    });
+    $select.select2({
+      placeholder: $select.attr('placeholder'),
+      allowClear: true
+    });
+  }
 
-  $.when(brandsRequest, suppliersRequest).done(function(brandResp, supplierResp) {
-    let brandData = brandResp[0];
-    let supplierData = supplierResp[0];
-
-    // Process Brands API response.
-    if (brandData.status === 200 && brandData.message.Ack === "Success") {
-      brands = brandData.message.Content.map(item => ({
-        id: item.ContentID,
-        text: item.ContentName
-      }));
-      console.log("Fetched Brands:", brands);
-    } else {
-      console.error("Error loading brands data");
-    }
-
-    // Process Suppliers API response.
-    if (supplierData.status === 200 && supplierData.message.Ack === "Success") {
-      suppliers = supplierData.message.Supplier.map(item => ({
-        id: item.SupplierID,
-        text: item.SupplierID
-      }));
-      console.log("Fetched Suppliers:", suppliers);
-    } else {
-      console.error("Error loading suppliers data");
-    }
-
-    hideLoader(); // Hide loader after data is fetched.
-    // Add the initial dynamic row.
-    addRow();
-  }).fail(function() {
-    console.error("Error fetching brands or suppliers data");
-    hideLoader();
-    addRow();
-  });
-
-  // Global row count tracker for dynamic row elements.
-  let rowCount = 0;
-
-  /*==========================================
-    Error Handling Helper Functions
-  ==========================================*/
+  // Error handling: show and remove error messages.
   function showError($field, message) {
     $field.addClass('error');
     if ($field.is('select')) {
@@ -133,22 +110,7 @@ $(function() {
     }
   }
 
-  /*==========================================
-    UI Helper Functions
-  ==========================================*/
-  function initSelect($select, data) {
-    $select.empty();
-    $select.append('<option></option>');
-    data.forEach(item => {
-      // Option's value remains the id; text is used in the summary.
-      $select.append(`<option value="${item.id}">${item.text}</option>`);
-    });
-    $select.select2({
-      placeholder: $select.attr('placeholder'),
-      allowClear: true
-    });
-  }
-
+  // Add a new dynamic product row.
   function addRow() {
     rowCount++;
     const row = $(`
@@ -176,13 +138,12 @@ $(function() {
         </div>
       </div>
     `);
-
     $('#rowsContainer').append(row);
     initSelect(row.find(`#brand-${rowCount}`), brands);
     initSelect(row.find(`#supplier-${rowCount}`), suppliers);
 
-    // Remove spaces in SKU and Product Name on blur.
-    row.find(`#sku-${rowCount}, #productName-${rowCount}`).on('blur', function() {
+    // Remove spaces in SKU when blurred. (Product Name retains its spaces.)
+    row.find(`#sku-${rowCount}`).on('blur', function() {
       let val = $(this).val();
       $(this).val(val ? val.replace(/\s+/g, '') : '');
     });
@@ -196,31 +157,7 @@ $(function() {
     });
   }
 
-  /*==========================================
-    Event Listeners for UI Interactions
-  ==========================================*/
-  $('#addRowBtn').on('click', function(e) {
-    e.preventDefault();
-    addRow();
-  });
-
-  $('.apply-all').on('click', function(e) {
-    e.preventDefault();
-    const target = $(this).data('target');
-    const $firstSelect = $('#dynamicForm').find(`select[name="${target}[]"]`).first();
-    const firstVal = $firstSelect.val();
-    if (firstVal) {
-      $('#dynamicForm').find(`select[name="${target}[]"]`).each(function() {
-        $(this).val(firstVal).trigger('change');
-      });
-    } else {
-      $(this).closest('div').find('select').addClass('error');
-    }
-  });
-
-  /*==========================================
-    Paste Event Handling with Helper Function
-  ==========================================*/
+  // Paste event helper function.
   function handlePaste(e, fieldPrefix, convertFn, validateFn, useCurrentIndex) {
     let clipboardData = e.originalEvent.clipboardData.getData('text/plain');
     let lines = clipboardData.split(/\r\n|\n|\r/).filter(item => item.trim() !== '');
@@ -251,88 +188,163 @@ $(function() {
     }
   }
 
+  /*==========================================
+    User Info Management
+  ==========================================*/
+  // When the user submits their info.
+  $("#userInfoForm").on("submit", function(e) {
+    e.preventDefault();
+    const firstName = $("#firstName").val().trim();
+    const lastName = $("#lastName").val().trim();
+    const email = $("#email").val().trim();
+
+    if (!firstName || !lastName || !email) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    const browserInfo = navigator.userAgent;
+    const userObj = {
+      firstName,
+      lastName,
+      email,
+      browserInfo,
+      date_created: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    const docRef = db.collection("product_request_users").doc(email);
+    docRef.get().then((doc) => {
+      if (doc.exists) {
+        // Update the global currentUser object.
+        currentUser = doc.data();
+        displaySavedUser(currentUser);
+      } else {
+        // Save new user info.
+        docRef.set(userObj)
+          .then(() => {
+            currentUser = userObj;
+            displaySavedUser(currentUser);
+          })
+          .catch((error) => {
+            console.error("Error saving user info to Firestore:", error);
+          });
+      }
+    }).catch((error) => {
+      console.error("Error getting user info from Firestore:", error);
+    });
+  });
+
+  // Edit User Info handler.
+  $("#editUserInfoBtn").on("click", function() {
+    // Simply show the user info form to allow the user to re-enter information.
+    $("#userInfoSection").show();
+    $("#savedUserInfo, #productRequestContainer, #dynamicForm").hide();
+  });
+
+  /*==========================================
+    Paste Event Bindings
+  ==========================================*/
   $(document).on('paste', '#dynamicForm input[name="sku[]"]', function(e) {
     handlePaste(e, 'sku', v => v, () => true, false);
   });
-
   $(document).on('paste', '#dynamicForm input[name="productName[]"]', function(e) {
-    let clipboardData = e.originalEvent.clipboardData.getData('text/plain');
-    let lines = clipboardData.split(/\r\n|\n|\r/).filter(item => item.trim() !== '');
-    console.log("Pasted product name lines:", lines);
     handlePaste(e, 'productName', v => v, () => true, true);
   });
-
   $(document).on('paste', '#dynamicForm input[name="purchasePrice[]"]', function(e) {
     handlePaste(e, 'purchasePrice', parseFloat, lines => lines.every(line => !isNaN(parseFloat(line))), true);
   });
-
   $(document).on('paste', '#dynamicForm input[name="rrp[]"]', function(e) {
     handlePaste(e, 'rrp', parseFloat, lines => lines.every(line => !isNaN(parseFloat(line))), true);
   });
 
+  /*==========================================
+    Delete Row Event
+  ==========================================*/
   $(document).on('click', '.delete-row', function() {
     $(this).closest('.row').remove();
   });
 
   /*==========================================
-    Form Submission, SKU Verification, Firestore Integration,
-    Summary Generation, Email Trigger and Table Clear with Loader
+    Fetching Brands and Suppliers Data
   ==========================================*/
-  $('#dynamicForm').on('submit', function(e) {
+  showLoader();
+  let brandsRequest = $.ajax({ url: brandsUrl, method: 'POST' });
+  let suppliersRequest = $.ajax({ url: suppliersUrl, method: 'POST' });
+
+  $.when(brandsRequest, suppliersRequest).done(function(brandResp, supplierResp) {
+    const brandData = brandResp[0];
+    const supplierData = supplierResp[0];
+
+    if (brandData.status === 200 && brandData.message.Ack === "Success") {
+      brands = brandData.message.Content.map(item => ({
+        id: item.ContentID,
+        text: item.ContentName
+      }));
+    } else {
+      console.error("Error loading brands data");
+    }
+
+    if (supplierData.status === 200 && supplierData.message.Ack === "Success") {
+      suppliers = supplierData.message.Supplier.map(item => ({
+        id: item.SupplierID,
+        text: item.SupplierID
+      }));
+    } else {
+      console.error("Error loading suppliers data");
+    }
+    hideLoader();
+    addRow();
+  }).fail(function() {
+    console.error("Error fetching brands or suppliers data");
+    hideLoader();
+    addRow();
+  });
+
+  /*==========================================
+    Dynamic Form Submission, SKU Verification and Firestore Integration
+  ==========================================*/
+  $("#dynamicForm").on("submit", function(e) {
     e.preventDefault();
     let valid = true;
 
     // Validate each dynamic row.
     $('#rowsContainer .row').each(function() {
       let $row = $(this);
-
-      // Validate SKU.
-      let $skuField = $row.find('input[name="sku[]"]');
-      let skuVal = $skuField.val();
-      let sku = skuVal ? skuVal.trim() : "";
-      if (!sku) {
-        showError($skuField, "SKU is required");
-        valid = false;
-      } else {
-        removeError($skuField);
-      }
-
-      // Validate Product Name.
-      let $prodField = $row.find('input[name="productName[]"]');
-      let productNameVal = $prodField.val();
-      let productName = productNameVal ? productNameVal.trim() : "";
-      if (!productName) {
-        showError($prodField, "Product Name is required");
-        valid = false;
-      } else {
-        removeError($prodField);
-      }
-
-      // Validate Brand.
+      let sku = $row.find('input[name="sku[]"]').val().trim();
+      let productName = $row.find('input[name="productName[]"]').val().trim();
       let $brandField = $row.find('select[name="brand[]"]');
-      let brand = $brandField.val();
-      if (!brand) {
+      let $supplierField = $row.find('select[name="supplier[]"]');
+      let $priceField = $row.find('input[name="purchasePrice[]"]');
+
+      if (!sku) {
+        showError($row.find('input[name="sku[]"]'), "SKU is required");
+        valid = false;
+      } else {
+        removeError($row.find('input[name="sku[]"]'));
+      }
+
+      if (!productName) {
+        showError($row.find('input[name="productName[]"]'), "Product Name is required");
+        valid = false;
+      } else {
+        removeError($row.find('input[name="productName[]"]'));
+      }
+
+      if (!$brandField.val()) {
         showError($brandField, "Brand is required");
         valid = false;
       } else {
         removeError($brandField);
       }
 
-      // Validate Supplier.
-      let $supplierField = $row.find('select[name="supplier[]"]');
-      let supplier = $supplierField.val();
-      if (!supplier) {
+      if (!$supplierField.val()) {
         showError($supplierField, "Supplier is required");
         valid = false;
       } else {
         removeError($supplierField);
       }
 
-      // Validate Purchase Price.
-      let $priceField = $row.find('input[name="purchasePrice[]"]');
-      let purchasePriceVal = $priceField.val();
-      let purchasePrice = purchasePriceVal ? purchasePriceVal.trim() : "";
-      if (!purchasePrice) {
+      if (!$priceField.val().trim()) {
         showError($priceField, "Purchase Price is required");
         valid = false;
       } else {
@@ -345,18 +357,16 @@ $(function() {
       return;
     }
     
-    showLoader(); // Show loader for SKU check.
-    
+    showLoader();
     // Prepare SKU array for duplicate checking.
     let skuArray = [];
     $('#rowsContainer .row').each(function() {
-      let skuVal = $(this).find('input[name="sku[]"]').val();
-      let sku = skuVal ? skuVal.trim() : "";
+      let sku = $(this).find('input[name="sku[]"]').val().trim();
       if (sku) {
         skuArray.push(sku);
       }
     });
-    
+
     // Verify SKUs via AJAX call.
     $.ajax({
       url: skuCheckUrl,
@@ -364,19 +374,15 @@ $(function() {
       contentType: 'application/json',
       data: JSON.stringify({ SKU: skuArray }),
       success: function(response) {
-        // Hide loader once SKU check is finished.
         hideLoader();
         if (response.Ack === "Success") {
           let existingSKUs = new Set();
           if (response.Item && response.Item.length > 0) {
-            response.Item.forEach(item => {
-              existingSKUs.add(item.SKU);
-            });
+            response.Item.forEach(item => existingSKUs.add(item.SKU));
           }
           let duplicateFound = false;
           $('#rowsContainer .row').each(function() {
-            let skuVal = $(this).find('input[name="sku[]"]').val();
-            let sku = skuVal ? skuVal.trim() : "";
+            let sku = $(this).find('input[name="sku[]"]').val().trim();
             if (existingSKUs.has(sku)) {
               $(this).addClass('danger');
               duplicateFound = true;
@@ -389,19 +395,11 @@ $(function() {
             return;
           }
 
-          //==============================================
-          // Firestore Integration:
-          // Save each dynamic row as a document in the "product_requests" collection.
-          // Each document includes:
-          // { sku, product_name, brand (as a string), primary_supplier, purchase_price, rrp, status:"request" }
-          //==============================================
+          // Prepare Firestore writes.
           let savePromises = [];
-          let submittedProducts = []; // Array to store submitted product data for summary.
-
+          let submittedProducts = [];
           $('#rowsContainer .row').each(function() {
             let $row = $(this);
-
-            // Gather field values, add "status":"request"
             let productData = {
               sku: $row.find('input[name="sku[]"]').val().trim(),
               product_name: $row.find('input[name="productName[]"]').val().trim(),
@@ -409,26 +407,21 @@ $(function() {
               primary_supplier: $row.find('select[name="supplier[]"]').val(),
               purchase_price: parseFloat($row.find('input[name="purchasePrice[]"]').val()),
               rrp: parseFloat($row.find('input[name="rrp[]"]').val()),
-              status: "request"
+              status: "request",
+              date_created: firebase.firestore.FieldValue.serverTimestamp(),
+              // Include requestor details from the currentUser variable.
+              requestor_firstName: currentUser ? currentUser.firstName : "",
+              requestor_lastName: currentUser ? currentUser.lastName : "",
+              requestor_email: currentUser ? currentUser.email : ""
             };
-
             submittedProducts.push(productData);
-
-            // Add Firestore write promise.
-            savePromises.push(
-              db.collection("product_requests").add(productData)
-            );
+            savePromises.push(db.collection("product_requests").add(productData));
           });
 
-          // Show loader while saving Firestore documents.
           showLoader();
           Promise.all(savePromises)
-            .then((results) => {
-              console.log("All documents saved successfully!", results);
-
-              //==============================================
-              // Generate HTML Summary of the Submitted Products.
-              //==============================================
+            .then(() => {
+              // Generate HTML Summary.
               let summaryHtml = `
                 <h2>Product Requests Summary</h2>
                 <table border="1" style="border-collapse: collapse; width: 100%;">
@@ -459,20 +452,10 @@ $(function() {
                 `;
               });
               summaryHtml += `</tbody></table>`;
-
-              // Display the summary in an element with id="submissionSummary".
               $("#submissionSummary").html(summaryHtml);
 
-              //==============================================
-              // Trigger Summary Email via API call.
-              // Updated payload structure:
-              // {
-              //    "email_body": "<summaryHtml>",
-              //    "email_subject": "Product Creation Request",
-              //    "email_send_to": "marketing@rapidcleanillawarra.com.au"
-              // }
-              //==============================================
-              showLoader(); // Show loader for email trigger.
+              // Trigger Summary Email.
+              showLoader();
               $.ajax({
                 url: "https://prod-24.australiasoutheast.logic.azure.com:443/workflows/16979e5f23434b988b37be58343e93e9/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=loAkudpZIyE7_2o54CIncgVBLoXBtND6G_4Qm2MJzOE",
                 method: "POST",
@@ -484,7 +467,7 @@ $(function() {
                 }),
                 success: function(resp) {
                   console.log("Summary email triggered", resp);
-                  hideLoader(); // Hide loader after email trigger completes.
+                  hideLoader();
                 },
                 error: function(err) {
                   console.error("Error triggering summary email", err);
@@ -492,14 +475,10 @@ $(function() {
                 }
               });
 
-              //==============================================
-              // Clear the table after successful submission.
-              //==============================================
+              // Clear the form and add a new row.
               $("#rowsContainer").empty();
               rowCount = 0;
-              addRow(); // Optionally, add a new empty row.
-
-              // Hide loader if still visible.
+              addRow();
               hideLoader();
             })
             .catch((error) => {

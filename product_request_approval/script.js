@@ -326,8 +326,9 @@ function initHeaderApplyButtons() {
 // Process submission of checked rows (perform SKU verification).
 async function submitCheckedRows() {
   const skuArray = [];
-  const rowMap = new Map();
+  const rowMap = new Map(); // Map SKU to its corresponding row element
 
+  // Gather SKUs and save each row's doc id via its data attribute.
   document.querySelectorAll(".rowCheckbox:checked").forEach(checkbox => {
     const row = checkbox.closest("tr");
     const skuInput = row.querySelector("td:nth-child(2) input");
@@ -339,7 +340,8 @@ async function submitCheckedRows() {
   });
 
   if (skuArray.length === 0) {
-    alert("No rows selected or missing SKU values.");
+    // Optionally, use a toast instead of alert.
+    toastr.warning("No rows selected or missing SKU values.");
     return;
   }
 
@@ -351,8 +353,10 @@ async function submitCheckedRows() {
     });
     const apiResponse = await response.json();
     if (apiResponse.Ack === "Success" && Array.isArray(apiResponse.Item)) {
+      // Create a Set of returned SKUs to identify duplicates.
       const returnedSKUs = new Set(apiResponse.Item.map(item => item.SKU));
 
+      // Highlight rows for existing SKUs in red.
       rowMap.forEach((row, sku) => {
         if (returnedSKUs.has(sku)) {
           row.style.backgroundColor = "red";
@@ -361,11 +365,19 @@ async function submitCheckedRows() {
         }
       });
 
+      // Notify the user about duplicated SKUs via toaster.
+      const duplicateSKUs = skuArray.filter(sku => returnedSKUs.has(sku));
+      if (duplicateSKUs.length > 0) {
+        toastr.info("Duplicate SKUs (already exist): " + duplicateSKUs.join(", "));
+      }
+
+      // Build an array of new items (those that do not exist).
       const newSKUList = skuArray.filter(sku => !returnedSKUs.has(sku));
       if (newSKUList.length > 0) {
         const newItemsArray = newSKUList.map(sku => {
           const row = rowMap.get(sku);
           return {
+            docId: row.getAttribute("data-doc-id"),  // required to update Firestore later
             sku: sku,
             productName: row.querySelector("td:nth-child(3) input").value,
             brand: row.querySelector("td:nth-child(4) select").value,
@@ -377,39 +389,38 @@ async function submitCheckedRows() {
             rrp: row.querySelector("td:nth-child(11) input").value,
           };
         });
+        // Send these new items to the API.
         sendNewItems(newItemsArray);
-      }
-      // Optionally, alert the user.
-      const missingSKUs = skuArray.filter(sku => !returnedSKUs.has(sku));
-      if (missingSKUs.length > 0) {
-        alert("The following SKU(s) were not found and new items have been sent: " + missingSKUs.join(", "));
       } else {
-        alert("All SKUs validated and submission complete.");
+        toastr.info("No new SKUs to create; all selected SKUs are duplicates.");
       }
     } else {
-      alert("Error verifying SKUs. Please try again later.");
+      toastr.error("Error verifying SKUs. Please try again later.");
     }
   } catch (error) {
     console.error("Error during SKU verification:", error);
-    alert("Error during SKU verification. Please try again later.");
+    toastr.error("Error during SKU verification. Please try again later.");
   }
 }
 
+
 // Function to send new items to the new API endpoint.
 // Sends one POST request per item with a payload that matches the revised schema.
+// Function to send new items to the new API endpoint.
+// Sends one POST request per item with a payload matching your revised schema.
 async function sendNewItems(newItemsArray) {
   for (const item of newItemsArray) {
     // Convert values from the row to the correct types.
     const purchasePrice = parseFloat(item.purchasePrice) || 0;
-    const clientMUP = parseFloat(item.clientMup) || 0;      // Now treated as a number.
-    const retailMUP = parseFloat(item.retailMup) || 0;      // Now treated as a number.
-    const categoryId = parseInt(item.categoryId, 10) || 0;    // Category as integer.
+    const clientMUP = parseFloat(item.clientMup) || 0;
+    const retailMUP = parseFloat(item.retailMup) || 0;
+    const categoryId = parseInt(item.categoryId, 10) || 0;
     const rrp = parseFloat(item.rrp) || 0;
-    
+
     // Compute the PriceGroup using the clientMUP formula.
     const priceGroup = purchasePrice * clientMUP * 1.1;
-    
-    // Build the payload following your revised schema.
+
+    // Build the payload according to the revised PowerAutomate schema.
     const payload = {
       SKU: item.sku || "",
       Model: item.productName || "",
@@ -432,13 +443,40 @@ async function sendNewItems(newItemsArray) {
           body: JSON.stringify(payload)
         }
       );
-      const responseData = await response.json();
+      
+      // Check if the response is JSON; if so, parse it.
+      const contentType = response.headers.get("content-type");
+      let responseData;
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        responseData = await response.json();
+      } else {
+        responseData = await response.text();
+      }
       console.log("Response from new API for SKU " + item.sku + ":", responseData);
+      
+      // Assume a successful creation when the API responds without errors.
+      // Now update the Firestore document (using the docId) to mark as created.
+      if (item.docId) {
+        db.collection("product_requests").doc(item.docId).update({
+          status: "product_created",
+          product_creation_date: new Date().toISOString() // current UTC time
+        })
+        .then(() => {
+          // Show a toaster notification for the successful update.
+          toastr.success("Product created successfully for SKU: " + item.sku);
+        })
+        .catch((updateError) => {
+          console.error("Error updating Firestore for SKU " + item.sku, updateError);
+          toastr.error("Failed to update Firestore for SKU: " + item.sku);
+        });
+      }
     } catch (error) {
       console.error("Error sending new item for SKU " + item.sku + ":", error);
+      toastr.error("Error sending new item for SKU: " + item.sku);
     }
   }
 }
+
 
 // Apply the first row's Client MUP value to all other rows.
 function applyClientMupToAllRows() {
@@ -518,7 +556,10 @@ function loadTableRows() {
     .then(querySnapshot => {
       querySnapshot.forEach(doc => {
         const data = doc.data();
+        data.docId = doc.id; // add the document ID to the data object
         const row = createTableRow(data);
+        // Save the document id on the row for later updates.
+        row.setAttribute("data-doc-id", doc.id);
         tbody.appendChild(row);
       });
       // Update dropdowns within newly added rows.
@@ -530,6 +571,7 @@ function loadTableRows() {
       console.error("Error fetching Firestore documents:", error);
     });
 }
+
 
 // Initialize the application when DOM is ready.
 document.addEventListener("DOMContentLoaded", async () => {
