@@ -3,84 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <title>Dynamic Fields Form</title>
-  <!-- Select2 CSS -->
+  <!-- External Select2 CSS -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-  <!-- Custom CSS -->
+  <!-- Custom CSS (external file) -->
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Internal styles for the user info form and centering -->
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-    }
-    /* Wrapper to center the user info form */
-    .center-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      padding: 10px; /* optional padding to prevent overflow on very small screens */
-    }
-    /* Style for the user information container */
-    .user-info-container {
-      background: #ffffff;
-      padding: 20px 25px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      width: 300px;
-      text-align: center;
-    }
-    .user-info-container h2 {
-      margin-top: 0;
-      margin-bottom: 20px;
-      font-size: 1.5em;
-      color: #333;
-    }
-    .user-info-container label {
-      display: block;
-      text-align: left;
-      margin-bottom: 6px;
-      font-weight: bold;
-      color: #555;
-    }
-    .user-info-container input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    .user-info-container button {
-      width: 100%;
-      padding: 10px;
-      background-color: #0078d4;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .user-info-container button:hover {
-      background-color: #005ea6;
-    }
-    /* Hide the user info section if user data is already stored */
-    #userInfoSection.hidden {
-      display: none;
-    }
-    /* The product request container remains styled as before */
-    #productRequestContainer {
-      display: none; /* will be toggled by script.js once user info is provided */
-    }
-    /* Loader Modal Styling */
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
 </head>
 <body>
   <!-- User Information Section: Centered Wrapper -->

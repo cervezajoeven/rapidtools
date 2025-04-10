@@ -5,8 +5,7 @@ $(document).ready(function() {
   let brands = [];
   let suppliers = [];
   let rowCount = 0;
-  // Global variable to store the current user's info.
-  let currentUser = null;
+  let currentUser = null; // Current user info
 
   const brandsUrl = 'https://prod-06.australiasoutheast.logic.azure.com:443/workflows/58215302c1c24203886ccf481adbaac5/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=RFQ4OtbS6cyjB_JzaIsowmww4KBqPQgavWLg18znE5s';
   const suppliersUrl = 'https://prod-06.australiasoutheast.logic.azure.com:443/workflows/da5c5708146642768d63293d2bbb9668/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-n0W0PxlF1G83xHYHGoEOhv3XmHXWlesbRk5NcgNT9w';
@@ -30,8 +29,15 @@ $(document).ready(function() {
     Initial UI Setup: Hide sections until needed
   ==========================================*/
   $("#savedUserInfo, #productRequestContainer, #dynamicForm").hide();
-  // Always show the user info form on load.
-  $("#userInfoSection").show();
+
+  // Check for saved user info in localStorage.
+  const storedUser = localStorage.getItem("currentUser");
+  if (storedUser) {
+    currentUser = JSON.parse(storedUser);
+    displaySavedUser(currentUser);
+  } else {
+    $("#userInfoSection").show();
+  }
 
   /*==========================================
     Helper Functions
@@ -142,7 +148,7 @@ $(document).ready(function() {
     initSelect(row.find(`#brand-${rowCount}`), brands);
     initSelect(row.find(`#supplier-${rowCount}`), suppliers);
 
-    // Remove spaces in SKU when blurred. (Product Name retains its spaces.)
+    // Remove spaces in SKU when blurred.
     row.find(`#sku-${rowCount}`).on('blur', function() {
       let val = $(this).val();
       $(this).val(val ? val.replace(/\s+/g, '') : '');
@@ -191,18 +197,20 @@ $(document).ready(function() {
   /*==========================================
     User Info Management
   ==========================================*/
-  // When the user submits their info.
   $("#userInfoForm").on("submit", function(e) {
     e.preventDefault();
+    showLoader(); // Show loader when form submission starts
+  
     const firstName = $("#firstName").val().trim();
     const lastName = $("#lastName").val().trim();
     const email = $("#email").val().trim();
-
+  
     if (!firstName || !lastName || !email) {
       alert("Please fill in all required fields.");
+      hideLoader(); // Hide loader if fields are missing
       return;
     }
-
+  
     const browserInfo = navigator.userAgent;
     const userObj = {
       firstName,
@@ -211,32 +219,38 @@ $(document).ready(function() {
       browserInfo,
       date_created: firebase.firestore.FieldValue.serverTimestamp()
     };
-
+  
     const docRef = db.collection("product_request_users").doc(email);
     docRef.get().then((doc) => {
       if (doc.exists) {
-        // Update the global currentUser object.
         currentUser = doc.data();
+        // Save user info in localStorage.
+        localStorage.setItem("currentUser", JSON.stringify(currentUser));
         displaySavedUser(currentUser);
+        hideLoader(); // Hide loader after successful retrieval
       } else {
-        // Save new user info.
         docRef.set(userObj)
           .then(() => {
             currentUser = userObj;
+            localStorage.setItem("currentUser", JSON.stringify(userObj));
             displaySavedUser(currentUser);
+            hideLoader(); // Hide loader after successful save
           })
           .catch((error) => {
             console.error("Error saving user info to Firestore:", error);
+            hideLoader(); // Hide loader in case of error saving
           });
       }
     }).catch((error) => {
       console.error("Error getting user info from Firestore:", error);
+      hideLoader(); // Hide loader in case of error retrieving user info
     });
   });
+  
 
   // Edit User Info handler.
   $("#editUserInfoBtn").on("click", function() {
-    // Simply show the user info form to allow the user to re-enter information.
+    localStorage.removeItem("currentUser");
     $("#userInfoSection").show();
     $("#savedUserInfo, #productRequestContainer, #dynamicForm").hide();
   });
@@ -307,7 +321,6 @@ $(document).ready(function() {
     e.preventDefault();
     let valid = true;
 
-    // Validate each dynamic row.
     $('#rowsContainer .row').each(function() {
       let $row = $(this);
       let sku = $row.find('input[name="sku[]"]').val().trim();
@@ -358,7 +371,6 @@ $(document).ready(function() {
     }
     
     showLoader();
-    // Prepare SKU array for duplicate checking.
     let skuArray = [];
     $('#rowsContainer .row').each(function() {
       let sku = $(this).find('input[name="sku[]"]').val().trim();
@@ -367,7 +379,6 @@ $(document).ready(function() {
       }
     });
 
-    // Verify SKUs via AJAX call.
     $.ajax({
       url: skuCheckUrl,
       method: 'POST',
@@ -395,7 +406,6 @@ $(document).ready(function() {
             return;
           }
 
-          // Prepare Firestore writes.
           let savePromises = [];
           let submittedProducts = [];
           $('#rowsContainer .row').each(function() {
@@ -409,7 +419,6 @@ $(document).ready(function() {
               rrp: parseFloat($row.find('input[name="rrp[]"]').val()),
               status: "request",
               date_created: firebase.firestore.FieldValue.serverTimestamp(),
-              // Include requestor details from the currentUser variable.
               requestor_firstName: currentUser ? currentUser.firstName : "",
               requestor_lastName: currentUser ? currentUser.lastName : "",
               requestor_email: currentUser ? currentUser.email : ""
@@ -421,7 +430,6 @@ $(document).ready(function() {
           showLoader();
           Promise.all(savePromises)
             .then(() => {
-              // Generate HTML Summary.
               let summaryHtml = `
                 <h2>Product Requests Summary</h2>
                 <table border="1" style="border-collapse: collapse; width: 100%;">
@@ -454,7 +462,7 @@ $(document).ready(function() {
               summaryHtml += `</tbody></table>`;
               $("#submissionSummary").html(summaryHtml);
 
-              // Trigger Summary Email.
+              // Trigger Summary Email to Marketing.
               showLoader();
               $.ajax({
                 url: "https://prod-24.australiasoutheast.logic.azure.com:443/workflows/16979e5f23434b988b37be58343e93e9/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=loAkudpZIyE7_2o54CIncgVBLoXBtND6G_4Qm2MJzOE",
@@ -466,11 +474,29 @@ $(document).ready(function() {
                   email_send_to: "marketing@rapidcleanillawarra.com.au"
                 }),
                 success: function(resp) {
-                  console.log("Summary email triggered", resp);
-                  hideLoader();
+                  console.log("Summary email triggered for marketing", resp);
+                  // Trigger second email to the requestor.
+                  $.ajax({
+                    url: "https://prod-24.australiasoutheast.logic.azure.com:443/workflows/16979e5f23434b988b37be58343e93e9/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=loAkudpZIyE7_2o54CIncgVBLoXBtND6G_4Qm2MJzOE",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                      email_body: summaryHtml,
+                      email_subject: "Product Creation Request Sent",
+                      email_send_to: currentUser.email
+                    }),
+                    success: function(resp2) {
+                      console.log("Confirmation email triggered for requestor", resp2);
+                      hideLoader();
+                    },
+                    error: function(err2) {
+                      console.error("Error triggering confirmation email for requestor", err2);
+                      hideLoader();
+                    }
+                  });
                 },
                 error: function(err) {
-                  console.error("Error triggering summary email", err);
+                  console.error("Error triggering summary email for marketing", err);
                   hideLoader();
                 }
               });
