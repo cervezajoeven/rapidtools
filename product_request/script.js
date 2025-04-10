@@ -194,6 +194,23 @@ $(document).ready(function() {
     }
   }
 
+  // Show the notification modal with a given message.
+  function showNotification(message) {
+    $("#notificationModalMessage").text(message);
+    $("#notificationModal").fadeIn();
+  }
+
+  // Hide the notification modal.
+  function hideNotification() {
+    $("#notificationModal").fadeOut();
+  }
+
+  // Bind click event on the modal close button.
+  $(document).on('click', '#notificationModalClose', function() {
+    hideNotification();
+  });
+
+
   /*==========================================
     User Info Management
   ==========================================*/
@@ -320,7 +337,7 @@ $(document).ready(function() {
   $("#dynamicForm").on("submit", function(e) {
     e.preventDefault();
     let valid = true;
-
+  
     $('#rowsContainer .row').each(function() {
       let $row = $(this);
       let sku = $row.find('input[name="sku[]"]').val().trim();
@@ -328,35 +345,35 @@ $(document).ready(function() {
       let $brandField = $row.find('select[name="brand[]"]');
       let $supplierField = $row.find('select[name="supplier[]"]');
       let $priceField = $row.find('input[name="purchasePrice[]"]');
-
+  
       if (!sku) {
         showError($row.find('input[name="sku[]"]'), "SKU is required");
         valid = false;
       } else {
         removeError($row.find('input[name="sku[]"]'));
       }
-
+  
       if (!productName) {
         showError($row.find('input[name="productName[]"]'), "Product Name is required");
         valid = false;
       } else {
         removeError($row.find('input[name="productName[]"]'));
       }
-
+  
       if (!$brandField.val()) {
         showError($brandField, "Brand is required");
         valid = false;
       } else {
         removeError($brandField);
       }
-
+  
       if (!$supplierField.val()) {
         showError($supplierField, "Supplier is required");
         valid = false;
       } else {
         removeError($supplierField);
       }
-
+  
       if (!$priceField.val().trim()) {
         showError($priceField, "Purchase Price is required");
         valid = false;
@@ -364,7 +381,7 @@ $(document).ready(function() {
         removeError($priceField);
       }
     });
-
+  
     if (!valid) {
       console.log("Validation errors found. Please correct the highlighted fields.");
       return;
@@ -378,7 +395,7 @@ $(document).ready(function() {
         skuArray.push(sku);
       }
     });
-
+  
     $.ajax({
       url: skuCheckUrl,
       method: 'POST',
@@ -405,7 +422,7 @@ $(document).ready(function() {
             console.log("One or more SKUs already exist. Please correct the highlighted rows.");
             return;
           }
-
+  
           let savePromises = [];
           let submittedProducts = [];
           $('#rowsContainer .row').each(function() {
@@ -426,7 +443,7 @@ $(document).ready(function() {
             submittedProducts.push(productData);
             savePromises.push(db.collection("product_requests").add(productData));
           });
-
+  
           showLoader();
           Promise.all(savePromises)
             .then(() => {
@@ -461,7 +478,7 @@ $(document).ready(function() {
               });
               summaryHtml += `</tbody></table>`;
               $("#submissionSummary").html(summaryHtml);
-
+  
               // Trigger Summary Email to Marketing.
               showLoader();
               $.ajax({
@@ -488,6 +505,8 @@ $(document).ready(function() {
                     success: function(resp2) {
                       console.log("Confirmation email triggered for requestor", resp2);
                       hideLoader();
+                      // Show notification modal after successful submission.
+                      showNotification("Your product requests have been successfully saved and you will receive a confirmation email shortly.");
                     },
                     error: function(err2) {
                       console.error("Error triggering confirmation email for requestor", err2);
@@ -500,7 +519,7 @@ $(document).ready(function() {
                   hideLoader();
                 }
               });
-
+  
               // Clear the form and add a new row.
               $("#rowsContainer").empty();
               rowCount = 0;
@@ -521,4 +540,5 @@ $(document).ready(function() {
       }
     });
   });
+  
 });
