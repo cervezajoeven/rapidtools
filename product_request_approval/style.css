@@ -1,0 +1,34 @@
+/* Table styling */
+#productTable {
+    width: 95%;
+    table-layout: fixed;
+    margin: auto;
+  }
+  #productTable td, #productTable th {
+    word-wrap: break-word;
+  }
+  #productTable input,
+  #productTable select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #productTable th:first-child, #productTable td:first-child {
+    width: 50px;
+    max-width: 50px;
+    padding: 0.5rem;
+    text-align: center;
+  }
+ 
+  
+  /* Sticky container for the submit button */
+  .submit-btn-container {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: #fff;  /* A background color helps it stand out */
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  input {
+    width: 100%;
+  }

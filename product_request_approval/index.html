@@ -11,42 +11,7 @@
   <!-- Firebase Firestore SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
-  <style>
-    /* Table styling */
-    #productTable {
-      width: 95%;
-      table-layout: fixed;
-      margin: auto;
-    }
-    #productTable td, #productTable th {
-      word-wrap: break-word;
-    }
-    #productTable input,
-    #productTable select {
-      width: 100%;
-      box-sizing: border-box;
-    }
-    #productTable th:first-child, #productTable td:first-child {
-      width: 50px;
-      max-width: 50px;
-      padding: 0.5rem;
-      text-align: center;
-    }
-   
-    
-    /* Sticky container for the submit button */
-    .submit-btn-container {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background-color: #fff;  /* A background color helps it stand out */
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-    }
-    input {
-      width: 100%;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <!-- Sticky container for Submit button -->
@@ -84,9 +49,9 @@
       </tbody>
     </table>
   </div>
-  <!-- Your JS script will be included at the end of the body or in a separate file -->
-  <script src="script.js"></script>
+  <!-- Load Toastr before script.js so that toastr is available for use in your custom JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-
+  <script src="script.js"></script>
 </body>
 </html>

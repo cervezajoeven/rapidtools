@@ -45,10 +45,43 @@ async function fetchApiData(url, dataKey) {
 }
 
 // ====================================================================
+// Helper Functions for Validation
+// ====================================================================
+
+// Attach a validation listener to input fields (except checkboxes).
+function attachValidationListener(input) {
+  if (input.type !== "checkbox") {
+    input.addEventListener("input", function() {
+      if(this.value.trim() === "") {
+        this.style.border = "1px solid red";
+      } else {
+        this.style.border = "";
+      }
+    });
+  }
+}
+
+// Validate all non-checkbox input fields in a row.
+// If any input is empty, mark its border red and return false.
+function validateRowInputs(row) {
+  let valid = true;
+  const inputs = row.querySelectorAll("input:not([type='checkbox'])");
+  inputs.forEach(input => {
+    if(input.value.trim() === "") {
+      input.style.border = "1px solid red";
+      valid = false;
+    } else {
+      input.style.border = "";
+    }
+  });
+  return valid;
+}
+
+// ====================================================================
 // DOM Helper Functions
 // ====================================================================
 
-// Generic function to update select elements based on data
+// Generic function to update select elements based on data.
 function updateSelectElements(selectSelector, options, placeholderText, valueKey) {
   const selects = document.querySelectorAll(selectSelector);
   selects.forEach(select => {
@@ -72,7 +105,7 @@ function updateSelectElements(selectSelector, options, placeholderText, valueKey
   });
 }
 
-// Functions to update the three different selects
+// Functions to update the three different selects.
 function updateBrandSelects(brandsList) {
   updateSelectElements("select.brandSelect", brandsList, "Select Brand", "ContentName");
 }
@@ -85,7 +118,7 @@ function updateCategorySelects(categoriesList) {
   updateSelectElements("select.categorySelect", categoriesList, "Select Category", "CategoryName");
 }
 
-// Calculation helpers
+// Calculation helpers.
 function calculateClientPrice(purchasePrice, clientMup) {
   return purchasePrice * clientMup * 1.1;
 }
@@ -111,6 +144,7 @@ function createTableRow(data) {
   const skuInput = document.createElement("input");
   skuInput.type = "text";
   skuInput.value = data.sku || "";
+  attachValidationListener(skuInput);
   skuTd.appendChild(skuInput);
   tr.appendChild(skuTd);
 
@@ -119,6 +153,7 @@ function createTableRow(data) {
   const productNameInput = document.createElement("input");
   productNameInput.type = "text";
   productNameInput.value = data.product_name || "";
+  attachValidationListener(productNameInput);
   productNameTd.appendChild(productNameInput);
   tr.appendChild(productNameTd);
 
@@ -152,6 +187,7 @@ function createTableRow(data) {
   purchasePriceInput.type = "number";
   purchasePriceInput.step = "0.01";
   purchasePriceInput.value = parseFloat(data.purchase_price).toFixed(2);
+  attachValidationListener(purchasePriceInput);
   purchasePriceTd.appendChild(purchasePriceInput);
   tr.appendChild(purchasePriceTd);
 
@@ -162,6 +198,7 @@ function createTableRow(data) {
   clientMupInput.step = "0.01";
   clientMupInput.classList.add("clientMupInput");
   clientMupInput.value = parseFloat(data.client_mup).toFixed(2);
+  attachValidationListener(clientMupInput);
   clientMupTd.appendChild(clientMupInput);
   tr.appendChild(clientMupTd);
 
@@ -172,6 +209,7 @@ function createTableRow(data) {
   retailMupInput.step = "0.01";
   retailMupInput.classList.add("retailMupInput");
   retailMupInput.value = parseFloat(data.retail_mup).toFixed(2);
+  attachValidationListener(retailMupInput);
   retailMupTd.appendChild(retailMupInput);
   tr.appendChild(retailMupTd);
 
@@ -182,6 +220,7 @@ function createTableRow(data) {
   clientPriceInput.step = "0.01";
   clientPriceInput.classList.add("clientPriceInput");
   clientPriceInput.value = parseFloat(data.client_price).toFixed(2);
+  attachValidationListener(clientPriceInput);
   clientPriceTd.appendChild(clientPriceInput);
   tr.appendChild(clientPriceTd);
 
@@ -192,6 +231,7 @@ function createTableRow(data) {
   rrpInput.step = "0.01";
   rrpInput.classList.add("rrpInput");
   rrpInput.value = parseFloat(data.rrp).toFixed(2);
+  attachValidationListener(rrpInput);
   rrpTd.appendChild(rrpInput);
   tr.appendChild(rrpTd);
 
@@ -289,27 +329,26 @@ function createTableRow(data) {
 // ====================================================================
 
 // Initialize all UI event listeners.
-  function initEventHandlers() {
-      // Removed dynamic button creation since it's now part of the HTML.
-      // Instead, attach the event listener to the existing button.
-      const submitBtn = document.getElementById("submitChecked");
-      if (submitBtn) {
-      submitBtn.addEventListener("click", submitCheckedRows);
-      }
-      
-      // Attach event listeners to header "Apply All" buttons (inside table headers)
-      initHeaderApplyButtons();
-      
-      // "Select All" checkbox for table header.
-      const selectAllCheckbox = document.getElementById("selectAll");
-      if (selectAllCheckbox) {
-      selectAllCheckbox.addEventListener("change", () => {
-          document.querySelectorAll(".rowCheckbox").forEach(cb => {
-          cb.checked = selectAllCheckbox.checked;
-          });
-      });
-      }
+function initEventHandlers() {
+  // Attach the event listener to the existing submit button.
+  const submitBtn = document.getElementById("submitChecked");
+  if (submitBtn) {
+    submitBtn.addEventListener("click", submitCheckedRows);
   }
+  
+  // Attach event listeners to header "Apply All" buttons (inside table headers).
+  initHeaderApplyButtons();
+  
+  // "Select All" checkbox for table header.
+  const selectAllCheckbox = document.getElementById("selectAll");
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener("change", () => {
+      document.querySelectorAll(".rowCheckbox").forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
+      });
+    });
+  }
+}
 
 // Attach click events to the "Apply All" buttons in the table header.
 function initHeaderApplyButtons() {
@@ -325,11 +364,25 @@ function initHeaderApplyButtons() {
 
 // Process submission of checked rows (perform SKU verification).
 async function submitCheckedRows() {
+  // Validate each checked row before proceeding.
+  let allRowsValid = true;
+  const checkedRows = document.querySelectorAll(".rowCheckbox:checked");
+  checkedRows.forEach(checkbox => {
+    const row = checkbox.closest("tr");
+    if (!validateRowInputs(row)) {
+      allRowsValid = false;
+    }
+  });
+  if (!allRowsValid) {
+    toastr.error("Please fill in all required fields.");
+    return;
+  }
+
   const skuArray = [];
   const rowMap = new Map(); // Map SKU to its corresponding row element
 
   // Gather SKUs and save each row's doc id via its data attribute.
-  document.querySelectorAll(".rowCheckbox:checked").forEach(checkbox => {
+  checkedRows.forEach(checkbox => {
     const row = checkbox.closest("tr");
     const skuInput = row.querySelector("td:nth-child(2) input");
     if (skuInput && skuInput.value.trim() !== "") {
@@ -340,7 +393,6 @@ async function submitCheckedRows() {
   });
 
   if (skuArray.length === 0) {
-    // Optionally, use a toast instead of alert.
     toastr.warning("No rows selected or missing SKU values.");
     return;
   }
@@ -365,7 +417,7 @@ async function submitCheckedRows() {
         }
       });
 
-      // Notify the user about duplicated SKUs via toaster.
+      // Notify the user about duplicated SKUs via Toastr.
       const duplicateSKUs = skuArray.filter(sku => returnedSKUs.has(sku));
       if (duplicateSKUs.length > 0) {
         toastr.info("Duplicate SKUs (already exist): " + duplicateSKUs.join(", "));
@@ -403,24 +455,17 @@ async function submitCheckedRows() {
   }
 }
 
-
-// Function to send new items to the new API endpoint.
-// Sends one POST request per item with a payload that matches the revised schema.
 // Function to send new items to the new API endpoint.
 // Sends one POST request per item with a payload matching your revised schema.
 async function sendNewItems(newItemsArray) {
   for (const item of newItemsArray) {
-    // Convert values from the row to the correct types.
     const purchasePrice = parseFloat(item.purchasePrice) || 0;
     const clientMUP = parseFloat(item.clientMup) || 0;
     const retailMUP = parseFloat(item.retailMup) || 0;
     const categoryId = parseInt(item.categoryId, 10) || 0;
     const rrp = parseFloat(item.rrp) || 0;
-
-    // Compute the PriceGroup using the clientMUP formula.
     const priceGroup = purchasePrice * clientMUP * 1.1;
 
-    // Build the payload according to the revised PowerAutomate schema.
     const payload = {
       SKU: item.sku || "",
       Model: item.productName || "",
@@ -431,7 +476,10 @@ async function sendNewItems(newItemsArray) {
       RRP: rrp,
       ClientMUP: clientMUP,
       RetailMUP: retailMUP,
-      PriceGroup: priceGroup
+      PriceGroup: priceGroup,
+      requestor_email: item.requestor_email || "",
+      requestor_firstname: item.requestor_firstName || "",
+      requestor_lastname: item.requestor_lastName || ""
     };
 
     try {
@@ -444,7 +492,6 @@ async function sendNewItems(newItemsArray) {
         }
       );
       
-      // Check if the response is JSON; if so, parse it.
       const contentType = response.headers.get("content-type");
       let responseData;
       if (contentType && contentType.indexOf("application/json") !== -1) {
@@ -454,15 +501,12 @@ async function sendNewItems(newItemsArray) {
       }
       console.log("Response from new API for SKU " + item.sku + ":", responseData);
       
-      // Assume a successful creation when the API responds without errors.
-      // Now update the Firestore document (using the docId) to mark as created.
       if (item.docId) {
         db.collection("product_requests").doc(item.docId).update({
           status: "product_created",
-          product_creation_date: new Date().toISOString() // current UTC time
+          product_creation_date: new Date().toISOString()
         })
         .then(() => {
-          // Show a toaster notification for the successful update.
           toastr.success("Product created successfully for SKU: " + item.sku);
         })
         .catch((updateError) => {
@@ -476,7 +520,6 @@ async function sendNewItems(newItemsArray) {
     }
   }
 }
-
 
 // Apply the first row's Client MUP value to all other rows.
 function applyClientMupToAllRows() {
@@ -558,7 +601,6 @@ function loadTableRows() {
         const data = doc.data();
         data.docId = doc.id; // add the document ID to the data object
         const row = createTableRow(data);
-        // Save the document id on the row for later updates.
         row.setAttribute("data-doc-id", doc.id);
         tbody.appendChild(row);
       });
@@ -572,9 +614,27 @@ function loadTableRows() {
     });
 }
 
-
 // Initialize the application when DOM is ready.
 document.addEventListener("DOMContentLoaded", async () => {
+  // Configure Toastr options.
+  toastr.options = {
+    "closeButton": true,
+    "debug": false,
+    "newestOnTop": true,
+    "progressBar": true,
+    "positionClass": "toast-top-right",
+    "preventDuplicates": false,
+    "onclick": null,
+    "showDuration": "300",
+    "hideDuration": "1000",
+    "timeOut": "5000",
+    "extendedTimeOut": "1000",
+    "showEasing": "swing",
+    "hideEasing": "linear",
+    "showMethod": "fadeIn",
+    "hideMethod": "fadeOut"
+  };
+  
   await loadData();
   loadTableRows();
   initEventHandlers();
