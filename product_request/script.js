@@ -59,6 +59,31 @@ $(document).ready(function() {
     return num;
   }
 
+  // Bind click event to the Add Row button
+  $("#addRowBtn").on("click", function() {
+    addRow();
+  });
+
+  $(".apply-all").on("click", function() {
+    // Get the target attribute (for example, "brand" or "supplier")
+    let target = $(this).data("target");
+    // Retrieve the master value from the first row of that field
+    let masterValue = $(`#${target}-1`).val();
+    
+    // If the first row's field has a value, apply it to all rows
+    if (masterValue) {
+      // Update all elements with an id that starts with the target and a hyphen
+      $(`[id^='${target}-']`).each(function() {
+        $(this).val(masterValue).trigger("change");
+      });
+    } else {
+      // Optionally, you can notify the user if the first row is empty
+      alert(`Please fill in the first row's ${target} field before applying to all.`);
+    }
+  });
+  
+
+
   // Loader functions.
   function showLoader() {
     $('#loaderModal').css('display', 'flex');
