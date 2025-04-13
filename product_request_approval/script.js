@@ -330,13 +330,13 @@ function createTableRow(data) {
 
 // Initialize all UI event listeners.
 function initEventHandlers() {
-  // Attach the event listener to the existing submit button.
+  // Attach event listener to the existing submit button.
   const submitBtn = document.getElementById("submitChecked");
   if (submitBtn) {
     submitBtn.addEventListener("click", submitCheckedRows);
   }
   
-  // Attach event listeners to header "Apply All" buttons (inside table headers).
+  // Attach event listeners to header "Apply All" buttons.
   initHeaderApplyButtons();
   
   // "Select All" checkbox for table header.
@@ -359,6 +359,11 @@ function initHeaderApplyButtons() {
   const applyRetailMupBtn = document.getElementById("applyRetailMupBtn");
   if (applyRetailMupBtn) {
     applyRetailMupBtn.addEventListener("click", applyRetailMupToAllRows);
+  }
+  // Add the new event listener for the Category button.
+  const applyCategoryBtn = document.getElementById("applyCategoryBtn");
+  if (applyCategoryBtn) {
+    applyCategoryBtn.addEventListener("click", applyCategoryToAllRows);
   }
 }
 
@@ -439,6 +444,9 @@ async function submitCheckedRows() {
             clientMup: row.querySelector("td:nth-child(8) input").value,
             retailMup: row.querySelector("td:nth-child(9) input").value,
             rrp: row.querySelector("td:nth-child(11) input").value,
+            requestor_email: row.getAttribute("data-requestor-email"),
+            requestor_firstname: row.getAttribute("data-requestor-firstname"),
+            requestor_lastname: row.getAttribute("data-requestor-lastname")
           };
         });
         // Send these new items to the API.
@@ -481,7 +489,7 @@ async function sendNewItems(newItemsArray) {
       requestor_firstname: item.requestor_firstName || "",
       requestor_lastname: item.requestor_lastName || ""
     };
-
+    
     try {
       const response = await fetch(
         "https://prod-52.australiasoutheast.logic.azure.com:443/workflows/fa1aaf833393486a82d6edb76ad0ff33/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=FLveH751-xsf6plOm8Fm3awsXw2oFBHAfogkn0IwnGY",
@@ -571,6 +579,34 @@ function applyRetailMupToAllRows() {
   alert("Retail MUP value applied to all rows.");
 }
 
+// Apply the first row's Category value to all other rows.
+function applyCategoryToAllRows() {
+  const rows = document.querySelectorAll("#productTable tbody tr");
+  if (rows.length === 0) {
+    alert("No data rows available.");
+    return;
+  }
+  const firstRow = rows[0];
+  // Use the select element with the "categorySelect" class from the first row.
+  const firstCategorySelect = firstRow.querySelector("select.categorySelect");
+  if (!firstCategorySelect) {
+    alert("Unable to retrieve Category from the first row.");
+    return;
+  }
+  const categoryVal = firstCategorySelect.value;
+  rows.forEach((row, idx) => {
+    if (idx === 0) return; // Skip the first row.
+    const categorySelect = row.querySelector("select.categorySelect");
+    if (categorySelect) {
+      categorySelect.value = categoryVal;
+      // Dispatch a change event in case there are any listeners attached.
+      categorySelect.dispatchEvent(new Event("change"));
+    }
+  });
+  alert("Category value applied to all rows.");
+}
+
+
 // ====================================================================
 // Main Initialization
 // ====================================================================
@@ -599,9 +635,13 @@ function loadTableRows() {
     .then(querySnapshot => {
       querySnapshot.forEach(doc => {
         const data = doc.data();
-        data.docId = doc.id; // add the document ID to the data object
+        data.docId = doc.id; // attach docId to the data object
         const row = createTableRow(data);
         row.setAttribute("data-doc-id", doc.id);
+        // Attach requestor details as data attributes on the row
+        row.setAttribute("data-requestor-email", data.requestor_email || "");
+        row.setAttribute("data-requestor-firstname", data.requestor_firstName || "");
+        row.setAttribute("data-requestor-lastname", data.requestor_lastName || "");
         tbody.appendChild(row);
       });
       // Update dropdowns within newly added rows.
