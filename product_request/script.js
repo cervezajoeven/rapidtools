@@ -59,6 +59,25 @@ $(document).ready(function() {
     return num;
   }
 
+  // Duplicate SKU checker function. Iterates over all rows in the form.
+  function checkDuplicateSKUs() {
+    let skuSet = new Set();
+    let duplicateFound = false;
+    $('#rowsContainer .row').each(function() {
+      let sku = $(this).find('input[name="sku[]"]').val().trim();
+      if (sku) {
+        if (skuSet.has(sku)) {
+          duplicateFound = true;
+          $(this).addClass('danger'); // Highlight duplicate row
+        } else {
+          skuSet.add(sku);
+          $(this).removeClass('danger');
+        }
+      }
+    });
+    return duplicateFound;
+  }
+
   // Bind click event to the Add Row button
   $("#addRowBtn").on("click", function() {
     addRow();
@@ -72,18 +91,14 @@ $(document).ready(function() {
     
     // If the first row's field has a value, apply it to all rows
     if (masterValue) {
-      // Update all elements with an id that starts with the target and a hyphen
       $(`[id^='${target}-']`).each(function() {
         $(this).val(masterValue).trigger("change");
       });
     } else {
-      // Optionally, you can notify the user if the first row is empty
       alert(`Please fill in the first row's ${target} field before applying to all.`);
     }
   });
   
-
-
   // Loader functions.
   function showLoader() {
     $('#loaderModal').css('display', 'flex');
@@ -235,7 +250,6 @@ $(document).ready(function() {
     hideNotification();
   });
 
-
   /*==========================================
     User Info Management
   ==========================================*/
@@ -289,7 +303,6 @@ $(document).ready(function() {
     });
   });
   
-
   // Edit User Info handler.
   $("#editUserInfoBtn").on("click", function() {
     localStorage.removeItem("currentUser");
@@ -411,6 +424,13 @@ $(document).ready(function() {
       console.log("Validation errors found. Please correct the highlighted fields.");
       return;
     }
+    
+    // --- Duplicate SKU Check Before Submission ---
+    if (checkDuplicateSKUs()) {
+      alert("Duplicate SKUs found within the submitted requests. Please ensure each SKU is unique.");
+      return;
+    }
+    // -------------------------------------------------
     
     showLoader();
     let skuArray = [];

@@ -336,6 +336,12 @@ function initEventHandlers() {
     submitBtn.addEventListener("click", submitCheckedRows);
   }
   
+  // Attach event listener to the new delete button.
+  const deleteBtn = document.getElementById("deleteChecked");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", deleteCheckedRows);
+  }
+  
   // Attach event listeners to header "Apply All" buttons.
   initHeaderApplyButtons();
   
@@ -384,16 +390,18 @@ async function submitCheckedRows() {
   }
 
   const skuArray = [];
-  const rowMap = new Map(); // Map SKU to its corresponding row element
-
-  // Gather SKUs and save each row's doc id via its data attribute.
+  const skuToRows = {};  // Object to map each SKU to an array of rows
+  // Gather SKUs and save each row's element.
   checkedRows.forEach(checkbox => {
     const row = checkbox.closest("tr");
     const skuInput = row.querySelector("td:nth-child(2) input");
     if (skuInput && skuInput.value.trim() !== "") {
       const skuValue = skuInput.value.trim();
       skuArray.push(skuValue);
-      rowMap.set(skuValue, row);
+      if (!skuToRows[skuValue]) {
+        skuToRows[skuValue] = [];
+      }
+      skuToRows[skuValue].push(row);
     }
   });
 
@@ -402,6 +410,20 @@ async function submitCheckedRows() {
     return;
   }
 
+  // NEW VALIDATION: Check for duplicate SKUs within the request.
+  const localDuplicates = Object.keys(skuToRows).filter(sku => skuToRows[sku].length > 1);
+  if (localDuplicates.length > 0) {
+    // Highlight each row with duplicate SKUs.
+    localDuplicates.forEach(dupSku => {
+      skuToRows[dupSku].forEach(row => {
+        row.style.backgroundColor = "orange"; // Highlight duplicate rows
+      });
+    });
+    toastr.error("Duplicate SKU found in submitted rows: " + localDuplicates.join(", "));
+    return; // Prevent further submission
+  }
+
+  // Proceed with SKU verification API call.
   try {
     const response = await fetch(SKU_VERIFICATION_URL, {
       method: "POST",
@@ -410,16 +432,18 @@ async function submitCheckedRows() {
     });
     const apiResponse = await response.json();
     if (apiResponse.Ack === "Success" && Array.isArray(apiResponse.Item)) {
-      // Create a Set of returned SKUs to identify duplicates.
+      // Create a Set of returned SKUs to identify duplicates from the backend.
       const returnedSKUs = new Set(apiResponse.Item.map(item => item.SKU));
 
       // Highlight rows for existing SKUs in red.
-      rowMap.forEach((row, sku) => {
-        if (returnedSKUs.has(sku)) {
-          row.style.backgroundColor = "red";
-        } else {
-          row.style.backgroundColor = "";
-        }
+      Object.keys(skuToRows).forEach(sku => {
+        skuToRows[sku].forEach(row => {
+          if (returnedSKUs.has(sku)) {
+            row.style.backgroundColor = "red";
+          } else {
+            row.style.backgroundColor = "";
+          }
+        });
       });
 
       // Notify the user about duplicated SKUs via Toastr.
@@ -432,7 +456,8 @@ async function submitCheckedRows() {
       const newSKUList = skuArray.filter(sku => !returnedSKUs.has(sku));
       if (newSKUList.length > 0) {
         const newItemsArray = newSKUList.map(sku => {
-          const row = rowMap.get(sku);
+          // Get the first row corresponding to the SKU.
+          const row = skuToRows[sku][0];
           return {
             docId: row.getAttribute("data-doc-id"),  // required to update Firestore later
             sku: sku,
@@ -461,6 +486,36 @@ async function submitCheckedRows() {
     console.error("Error during SKU verification:", error);
     toastr.error("Error during SKU verification. Please try again later.");
   }
+}
+
+// New function to delete checked rows by updating Firestore document status to "delete".
+async function deleteCheckedRows() {
+  const checkedRows = document.querySelectorAll(".rowCheckbox:checked");
+  if (checkedRows.length === 0) {
+    toastr.warning("No rows selected for deletion.");
+    return;
+  }
+  
+  // Process each checked row.
+  checkedRows.forEach(rowCheckbox => {
+    const row = rowCheckbox.closest("tr");
+    const docId = row.getAttribute("data-doc-id");
+    if (docId) {
+      db.collection("product_requests").doc(docId).update({
+        status: "delete",
+        deletion_date: new Date().toISOString()
+      })
+      .then(() => {
+        // Optional: Remove or visually mark the row after deletion.
+        row.style.backgroundColor = "#ccc";
+        toastr.success("Request deleted successfully for doc id: " + docId);
+      })
+      .catch((error) => {
+        console.error("Error deleting document with id " + docId, error);
+        toastr.error("Error deleting request for doc id: " + docId);
+      });
+    }
+  });
 }
 
 // Function to send new items to the new API endpoint.
@@ -605,7 +660,6 @@ function applyCategoryToAllRows() {
   });
   alert("Category value applied to all rows.");
 }
-
 
 // ====================================================================
 // Main Initialization
