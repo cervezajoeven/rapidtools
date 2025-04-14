@@ -23,32 +23,26 @@ const SUPPLIER_URL = 'https://prod-06.australiasoutheast.logic.azure.com:443/wor
 const CATEGORIES_URL = 'https://prod-47.australiasoutheast.logic.azure.com:443/workflows/0d67bc8f1bb64e78a2495f13a7498081/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=fJJzmNyuARuwEcNCoMuWwMS9kmWZQABw9kJXsUj9Wk8';
 const SKU_VERIFICATION_URL = 'https://prod-03.australiasoutheast.logic.azure.com:443/workflows/151bc47e0ba4447b893d1c9fea9af46f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bRyr_oW-ud06XlU5VLhBqQ7tyU__jD3clEOGIEhax-Q';
 
-// A generic helper to fetch data via POST and return the expected array from the provided key.
-async function fetchApiData(url, dataKey) {
-  try {
-    const response = await fetch(url, { method: "POST" });
-    const data = await response.json();
-    if (
-      data.status === 200 &&
-      data.message &&
-      Array.isArray(data.message[dataKey])
-    ) {
-      return data.message[dataKey];
-    } else {
-      console.error("Unexpected API response:", data);
-      return [];
-    }
-  } catch (error) {
-    console.error(`Error fetching from ${url}:`, error);
-    return [];
+// ====================================================================
+// Loader Helper Functions
+// ====================================================================
+function showLoader() {
+  const loader = document.getElementById("loader");
+  if (loader) {
+    loader.style.display = "flex";
+  }
+}
+
+function hideLoader() {
+  const loader = document.getElementById("loader");
+  if (loader) {
+    loader.style.display = "none";
   }
 }
 
 // ====================================================================
 // Helper Functions for Validation
 // ====================================================================
-
-// Attach a validation listener to input fields (except checkboxes).
 function attachValidationListener(input) {
   if (input.type !== "checkbox") {
     input.addEventListener("input", function() {
@@ -61,8 +55,6 @@ function attachValidationListener(input) {
   }
 }
 
-// Validate all non-checkbox input fields in a row.
-// If any input is empty, mark its border red and return false.
 function validateRowInputs(row) {
   let valid = true;
   const inputs = row.querySelectorAll("input:not([type='checkbox'])");
@@ -80,19 +72,15 @@ function validateRowInputs(row) {
 // ====================================================================
 // DOM Helper Functions
 // ====================================================================
-
-// Generic function to update select elements based on data.
 function updateSelectElements(selectSelector, options, placeholderText, valueKey) {
   const selects = document.querySelectorAll(selectSelector);
   selects.forEach(select => {
     const currentValue = select.getAttribute("data-selected") || "";
-    select.innerHTML = ""; // Clear existing options
-
+    select.innerHTML = "";
     const placeholderOption = document.createElement("option");
     placeholderOption.value = "";
     placeholderOption.textContent = placeholderText;
     select.appendChild(placeholderOption);
-
     options.forEach(item => {
       const option = document.createElement("option");
       option.value = item[valueKey];
@@ -105,7 +93,6 @@ function updateSelectElements(selectSelector, options, placeholderText, valueKey
   });
 }
 
-// Functions to update the three different selects.
 function updateBrandSelects(brandsList) {
   updateSelectElements("select.brandSelect", brandsList, "Select Brand", "ContentName");
 }
@@ -115,22 +102,32 @@ function updateSupplierSelects(supplierList) {
 }
 
 function updateCategorySelects(categoriesList) {
+  $("select.categorySelect").each(function() {
+      if ($(this).data('select2')) {
+           $(this).select2('destroy');
+      }
+  });
   updateSelectElements("select.categorySelect", categoriesList, "Select Category", "CategoryName");
+  $("select.categorySelect").select2({
+      width: 'resolve',
+      placeholder: "Select Category",
+      allowClear: true
+  });
 }
 
+// ====================================================================
 // Calculation helpers.
 function calculateClientPrice(purchasePrice, clientMup) {
   return purchasePrice * clientMup * 1.1;
 }
-
 function calculateRrp(purchasePrice, retailMup) {
   return purchasePrice * retailMup * 1.1;
 }
 
-// Create a table row for a product request and attach needed event listeners.
+// ====================================================================
+// Create a table row with all fields including new Requestor Name.
 function createTableRow(data) {
   const tr = document.createElement("tr");
-
   // Checkbox cell.
   const checkboxTd = document.createElement("td");
   const checkbox = document.createElement("input");
@@ -138,6 +135,16 @@ function createTableRow(data) {
   checkbox.classList.add("rowCheckbox");
   checkboxTd.appendChild(checkbox);
   tr.appendChild(checkboxTd);
+
+  // Requestor Name cell.
+  const requestorNameTd = document.createElement("td");
+  let requestorName = "";
+  if (data.requestor_firstName || data.requestor_lastName) {
+    requestorName = (data.requestor_firstName || "") + " " + (data.requestor_lastName || "");
+    requestorName = requestorName.trim();
+  }
+  requestorNameTd.textContent = requestorName;
+  tr.appendChild(requestorNameTd);
 
   // SKU cell.
   const skuTd = document.createElement("td");
@@ -239,7 +246,6 @@ function createTableRow(data) {
   let clientUpdating = false;
   let retailUpdating = false;
 
-  // Update calculations when Purchase Price changes.
   purchasePriceInput.addEventListener("input", () => {
     const purchasePrice = parseFloat(purchasePriceInput.value);
     const clientMup = parseFloat(clientMupInput.value);
@@ -256,7 +262,6 @@ function createTableRow(data) {
     }
   });
 
-  // When Client MUP changes update Client Price.
   clientMupInput.addEventListener("input", () => {
     if (clientUpdating) return;
     clientUpdating = true;
@@ -270,7 +275,6 @@ function createTableRow(data) {
     clientUpdating = false;
   });
 
-  // When Client Price is manually changed, update Client MUP.
   clientPriceInput.addEventListener("input", () => {
     if (clientUpdating) return;
     clientUpdating = true;
@@ -285,7 +289,6 @@ function createTableRow(data) {
     clientUpdating = false;
   });
 
-  // When Retail MUP changes update RRP.
   retailMupInput.addEventListener("input", () => {
     if (retailUpdating) return;
     retailUpdating = true;
@@ -299,7 +302,6 @@ function createTableRow(data) {
     retailUpdating = false;
   });
 
-  // When RRP changes update Retail MUP.
   rrpInput.addEventListener("input", () => {
     if (retailUpdating) return;
     retailUpdating = true;
@@ -314,7 +316,6 @@ function createTableRow(data) {
     retailUpdating = false;
   });
 
-  // If RRP is initially provided, update the retail MUP.
   const initialRrp = parseFloat(data.rrp);
   const purchasePriceVal = parseFloat(data.purchase_price);
   if (!isNaN(initialRrp) && initialRrp !== 0 && !isNaN(purchasePriceVal) && purchasePriceVal !== 0) {
@@ -327,25 +328,19 @@ function createTableRow(data) {
 // ====================================================================
 // Event Handlers
 // ====================================================================
-
-// Initialize all UI event listeners.
 function initEventHandlers() {
-  // Attach event listener to the existing submit button.
   const submitBtn = document.getElementById("submitChecked");
   if (submitBtn) {
     submitBtn.addEventListener("click", submitCheckedRows);
   }
   
-  // Attach event listener to the new delete button.
   const deleteBtn = document.getElementById("deleteChecked");
   if (deleteBtn) {
     deleteBtn.addEventListener("click", deleteCheckedRows);
   }
   
-  // Attach event listeners to header "Apply All" buttons.
   initHeaderApplyButtons();
   
-  // "Select All" checkbox for table header.
   const selectAllCheckbox = document.getElementById("selectAll");
   if (selectAllCheckbox) {
     selectAllCheckbox.addEventListener("change", () => {
@@ -356,7 +351,6 @@ function initEventHandlers() {
   }
 }
 
-// Attach click events to the "Apply All" buttons in the table header.
 function initHeaderApplyButtons() {
   const applyClientMupBtn = document.getElementById("applyClientMupBtn");
   if (applyClientMupBtn) {
@@ -366,16 +360,31 @@ function initHeaderApplyButtons() {
   if (applyRetailMupBtn) {
     applyRetailMupBtn.addEventListener("click", applyRetailMupToAllRows);
   }
-  // Add the new event listener for the Category button.
   const applyCategoryBtn = document.getElementById("applyCategoryBtn");
   if (applyCategoryBtn) {
     applyCategoryBtn.addEventListener("click", applyCategoryToAllRows);
   }
 }
 
-// Process submission of checked rows (perform SKU verification).
+async function fetchApiData(url, dataKey) {
+  try {
+    const response = await fetch(url, { method: "POST" });
+    const data = await response.json();
+    if (data.status === 200 && data.message && Array.isArray(data.message[dataKey])) {
+      return data.message[dataKey];
+    } else {
+      console.error("Unexpected API response:", data);
+      return [];
+    }
+  } catch (error) {
+    console.error(`Error fetching from ${url}:`, error);
+    return [];
+  }
+}
+
+
 async function submitCheckedRows() {
-  // Validate each checked row before proceeding.
+  // Validate checked rows.
   let allRowsValid = true;
   const checkedRows = document.querySelectorAll(".rowCheckbox:checked");
   checkedRows.forEach(checkbox => {
@@ -388,13 +397,12 @@ async function submitCheckedRows() {
     toastr.error("Please fill in all required fields.");
     return;
   }
-
+  
   const skuArray = [];
-  const skuToRows = {};  // Object to map each SKU to an array of rows
-  // Gather SKUs and save each row's element.
+  const skuToRows = {};
   checkedRows.forEach(checkbox => {
     const row = checkbox.closest("tr");
-    const skuInput = row.querySelector("td:nth-child(2) input");
+    const skuInput = row.querySelector("td:nth-child(3) input"); // Adjusted due to new Requestor column
     if (skuInput && skuInput.value.trim() !== "") {
       const skuValue = skuInput.value.trim();
       skuArray.push(skuValue);
@@ -404,26 +412,24 @@ async function submitCheckedRows() {
       skuToRows[skuValue].push(row);
     }
   });
-
+  
   if (skuArray.length === 0) {
     toastr.warning("No rows selected or missing SKU values.");
     return;
   }
-
-  // NEW VALIDATION: Check for duplicate SKUs within the request.
+  
   const localDuplicates = Object.keys(skuToRows).filter(sku => skuToRows[sku].length > 1);
   if (localDuplicates.length > 0) {
-    // Highlight each row with duplicate SKUs.
     localDuplicates.forEach(dupSku => {
       skuToRows[dupSku].forEach(row => {
-        row.style.backgroundColor = "orange"; // Highlight duplicate rows
+        row.style.backgroundColor = "orange";
       });
     });
     toastr.error("Duplicate SKU found in submitted rows: " + localDuplicates.join(", "));
-    return; // Prevent further submission
+    return;
   }
-
-  // Proceed with SKU verification API call.
+  
+  showLoader();
   try {
     const response = await fetch(SKU_VERIFICATION_URL, {
       method: "POST",
@@ -432,49 +438,39 @@ async function submitCheckedRows() {
     });
     const apiResponse = await response.json();
     if (apiResponse.Ack === "Success" && Array.isArray(apiResponse.Item)) {
-      // Create a Set of returned SKUs to identify duplicates from the backend.
       const returnedSKUs = new Set(apiResponse.Item.map(item => item.SKU));
-
-      // Highlight rows for existing SKUs in red.
+  
       Object.keys(skuToRows).forEach(sku => {
         skuToRows[sku].forEach(row => {
-          if (returnedSKUs.has(sku)) {
-            row.style.backgroundColor = "red";
-          } else {
-            row.style.backgroundColor = "";
-          }
+          row.style.backgroundColor = returnedSKUs.has(sku) ? "red" : "";
         });
       });
-
-      // Notify the user about duplicated SKUs via Toastr.
+  
       const duplicateSKUs = skuArray.filter(sku => returnedSKUs.has(sku));
       if (duplicateSKUs.length > 0) {
         toastr.info("Duplicate SKUs (already exist): " + duplicateSKUs.join(", "));
       }
-
-      // Build an array of new items (those that do not exist).
+  
       const newSKUList = skuArray.filter(sku => !returnedSKUs.has(sku));
       if (newSKUList.length > 0) {
         const newItemsArray = newSKUList.map(sku => {
-          // Get the first row corresponding to the SKU.
           const row = skuToRows[sku][0];
           return {
-            docId: row.getAttribute("data-doc-id"),  // required to update Firestore later
+            docId: row.getAttribute("data-doc-id"),
             sku: sku,
-            productName: row.querySelector("td:nth-child(3) input").value,
-            brand: row.querySelector("td:nth-child(4) select").value,
-            primarySupplier: row.querySelector("td:nth-child(5) select").value,
-            categoryId: row.querySelector("td:nth-child(6) select").value,
-            purchasePrice: row.querySelector("td:nth-child(7) input").value,
-            clientMup: row.querySelector("td:nth-child(8) input").value,
-            retailMup: row.querySelector("td:nth-child(9) input").value,
-            rrp: row.querySelector("td:nth-child(11) input").value,
+            productName: row.querySelector("td:nth-child(4) input").value,
+            brand: row.querySelector("td:nth-child(5) select").value,
+            primarySupplier: row.querySelector("td:nth-child(6) select").value,
+            categoryId: row.querySelector("td:nth-child(7) select").value,
+            purchasePrice: row.querySelector("td:nth-child(8) input").value,
+            clientMup: row.querySelector("td:nth-child(9) input").value,
+            retailMup: row.querySelector("td:nth-child(10) input").value,
+            rrp: row.querySelector("td:nth-child(12) input").value,
             requestor_email: row.getAttribute("data-requestor-email"),
             requestor_firstname: row.getAttribute("data-requestor-firstname"),
             requestor_lastname: row.getAttribute("data-requestor-lastname")
           };
         });
-        // Send these new items to the API.
         sendNewItems(newItemsArray);
       } else {
         toastr.info("No new SKUs to create; all selected SKUs are duplicates.");
@@ -485,10 +481,11 @@ async function submitCheckedRows() {
   } catch (error) {
     console.error("Error during SKU verification:", error);
     toastr.error("Error during SKU verification. Please try again later.");
+  } finally {
+    hideLoader();
   }
 }
 
-// New function to delete checked rows by updating Firestore document status to "delete".
 async function deleteCheckedRows() {
   const checkedRows = document.querySelectorAll(".rowCheckbox:checked");
   if (checkedRows.length === 0) {
@@ -496,17 +493,17 @@ async function deleteCheckedRows() {
     return;
   }
   
-  // Process each checked row.
+  showLoader();
+  const deletionPromises = [];
   checkedRows.forEach(rowCheckbox => {
     const row = rowCheckbox.closest("tr");
     const docId = row.getAttribute("data-doc-id");
     if (docId) {
-      db.collection("product_requests").doc(docId).update({
+      const deletionPromise = db.collection("product_requests").doc(docId).update({
         status: "delete",
         deletion_date: new Date().toISOString()
       })
       .then(() => {
-        // Optional: Remove or visually mark the row after deletion.
         row.style.backgroundColor = "#ccc";
         toastr.success("Request deleted successfully for doc id: " + docId);
       })
@@ -514,12 +511,13 @@ async function deleteCheckedRows() {
         console.error("Error deleting document with id " + docId, error);
         toastr.error("Error deleting request for doc id: " + docId);
       });
+      deletionPromises.push(deletionPromise);
     }
   });
+  await Promise.all(deletionPromises);
+  hideLoader();
 }
 
-// Function to send new items to the new API endpoint.
-// Sends one POST request per item with a payload matching your revised schema.
 async function sendNewItems(newItemsArray) {
   for (const item of newItemsArray) {
     const purchasePrice = parseFloat(item.purchasePrice) || 0;
@@ -528,7 +526,7 @@ async function sendNewItems(newItemsArray) {
     const categoryId = parseInt(item.categoryId, 10) || 0;
     const rrp = parseFloat(item.rrp) || 0;
     const priceGroup = purchasePrice * clientMUP * 1.1;
-
+  
     const payload = {
       SKU: item.sku || "",
       Model: item.productName || "",
@@ -584,7 +582,6 @@ async function sendNewItems(newItemsArray) {
   }
 }
 
-// Apply the first row's Client MUP value to all other rows.
 function applyClientMupToAllRows() {
   const rows = document.querySelectorAll("#productTable tbody tr");
   if (rows.length === 0) {
@@ -592,15 +589,15 @@ function applyClientMupToAllRows() {
     return;
   }
   const firstRow = rows[0];
-  const firstClientMup = firstRow.querySelector("td:nth-child(8) input");
+  const firstClientMup = firstRow.querySelector("td:nth-child(9) input"); // Adjusted index
   if (!firstClientMup) {
     alert("Unable to retrieve Client MUP from the first row.");
     return;
   }
   const clientMupVal = firstClientMup.value;
   rows.forEach((row, idx) => {
-    if (idx === 0) return; // Skip the first row.
-    const clientMupInput = row.querySelector("td:nth-child(8) input");
+    if (idx === 0) return;
+    const clientMupInput = row.querySelector("td:nth-child(9) input");
     if (clientMupInput) {
       clientMupInput.value = clientMupVal;
       clientMupInput.dispatchEvent(new Event("input"));
@@ -609,7 +606,6 @@ function applyClientMupToAllRows() {
   alert("Client MUP value applied to all rows.");
 }
 
-// Apply the first row's Retail MUP value to all other rows.
 function applyRetailMupToAllRows() {
   const rows = document.querySelectorAll("#productTable tbody tr");
   if (rows.length === 0) {
@@ -617,15 +613,15 @@ function applyRetailMupToAllRows() {
     return;
   }
   const firstRow = rows[0];
-  const firstRetailMup = firstRow.querySelector("td:nth-child(9) input");
+  const firstRetailMup = firstRow.querySelector("td:nth-child(10) input"); // Adjusted index
   if (!firstRetailMup) {
     alert("Unable to retrieve Retail MUP from the first row.");
     return;
   }
   const retailMupVal = firstRetailMup.value;
   rows.forEach((row, idx) => {
-    if (idx === 0) return; // Skip the first row.
-    const retailMupInput = row.querySelector("td:nth-child(9) input");
+    if (idx === 0) return;
+    const retailMupInput = row.querySelector("td:nth-child(10) input");
     if (retailMupInput) {
       retailMupInput.value = retailMupVal;
       retailMupInput.dispatchEvent(new Event("input"));
@@ -634,7 +630,6 @@ function applyRetailMupToAllRows() {
   alert("Retail MUP value applied to all rows.");
 }
 
-// Apply the first row's Category value to all other rows.
 function applyCategoryToAllRows() {
   const rows = document.querySelectorAll("#productTable tbody tr");
   if (rows.length === 0) {
@@ -642,7 +637,6 @@ function applyCategoryToAllRows() {
     return;
   }
   const firstRow = rows[0];
-  // Use the select element with the "categorySelect" class from the first row.
   const firstCategorySelect = firstRow.querySelector("select.categorySelect");
   if (!firstCategorySelect) {
     alert("Unable to retrieve Category from the first row.");
@@ -650,11 +644,10 @@ function applyCategoryToAllRows() {
   }
   const categoryVal = firstCategorySelect.value;
   rows.forEach((row, idx) => {
-    if (idx === 0) return; // Skip the first row.
+    if (idx === 0) return;
     const categorySelect = row.querySelector("select.categorySelect");
     if (categorySelect) {
       categorySelect.value = categoryVal;
-      // Dispatch a change event in case there are any listeners attached.
       categorySelect.dispatchEvent(new Event("change"));
     }
   });
@@ -668,7 +661,6 @@ let brandsList = [];
 let supplierList = [];
 let categoriesList = [];
 
-// Load API data for dropdowns.
 async function loadData() {
   [brandsList, supplierList, categoriesList] = await Promise.all([
     fetchApiData(BRANDS_URL, "Content"),
@@ -680,7 +672,6 @@ async function loadData() {
   updateCategorySelects(categoriesList);
 }
 
-// Load Firestore data to populate the table.
 function loadTableRows() {
   const tbody = document.querySelector("#productTable tbody");
   db.collection("product_requests")
@@ -689,16 +680,14 @@ function loadTableRows() {
     .then(querySnapshot => {
       querySnapshot.forEach(doc => {
         const data = doc.data();
-        data.docId = doc.id; // attach docId to the data object
+        data.docId = doc.id;
         const row = createTableRow(data);
         row.setAttribute("data-doc-id", doc.id);
-        // Attach requestor details as data attributes on the row
         row.setAttribute("data-requestor-email", data.requestor_email || "");
         row.setAttribute("data-requestor-firstname", data.requestor_firstName || "");
         row.setAttribute("data-requestor-lastname", data.requestor_lastName || "");
         tbody.appendChild(row);
       });
-      // Update dropdowns within newly added rows.
       updateBrandSelects(brandsList);
       updateSupplierSelects(supplierList);
       updateCategorySelects(categoriesList);
@@ -708,9 +697,7 @@ function loadTableRows() {
     });
 }
 
-// Initialize the application when DOM is ready.
 document.addEventListener("DOMContentLoaded", async () => {
-  // Configure Toastr options.
   toastr.options = {
     "closeButton": true,
     "debug": false,
@@ -728,8 +715,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     "showMethod": "fadeIn",
     "hideMethod": "fadeOut"
   };
-  
+
+  showLoader();
   await loadData();
   loadTableRows();
   initEventHandlers();
+  hideLoader();
 });

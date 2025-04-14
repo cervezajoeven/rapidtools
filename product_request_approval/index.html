@@ -12,12 +12,19 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
   <link rel="stylesheet" href="style.css" />
+  <!-- Select2 CSS for searchable dropdowns -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
+  <!-- Loader overlay -->
+  <div id="loader" class="loader">
+    <div class="spinner"></div>
+  </div>
+
   <!-- Sticky container for action buttons -->
   <div class="submit-btn-container" style="display: flex; justify-content: space-between; align-items: center;">
-    <button id="deleteChecked" type="button" class="btn btn-danger">Delete Checked Request</button>
     <button id="submitChecked" type="button" class="btn btn-primary">Submit Checked Rows</button>
+    <button id="deleteChecked" type="button" class="btn btn-danger">Delete Checked Request</button>
   </div>
   <div class="table-responsive">
     <table class="table table-striped table-bordered" id="productTable">
@@ -26,6 +33,7 @@
           <th>
             <input type="checkbox" id="selectAll" />
           </th>
+          <th>Requestor Name</th>
           <th>SKU</th>
           <th>Product Name</th>
           <th>Brand</th>
@@ -33,7 +41,7 @@
           <th>
             Category
             <button type="button" id="applyCategoryBtn" style="margin-left: 10px; font-size: 0.8rem;">Apply All</button>
-          </th>          
+          </th>
           <th>Purchase Price</th>
           <th>
             Client MUP
@@ -53,9 +61,13 @@
       </tbody>
     </table>
   </div>
-  <!-- Load Toastr before script.js so that toastr is available for use in your custom JS -->
+  <!-- Load jQuery (required for Toastr and Select2) -->
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <!-- Toastr JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <!-- Select2 JS for searchable dropdowns -->
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <!-- Custom Script -->
   <script src="script.js"></script>
 </body>
 </html>
