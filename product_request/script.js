@@ -494,6 +494,7 @@ $(document).ready(function() {
             .then(() => {
               let summaryHtml = `
                 <h2>Product Requests Summary</h2>
+                <p><strong>Requestor:</strong> ${currentUser ? currentUser.firstName + " " + currentUser.lastName : ""}</p>
                 <table border="1" style="border-collapse: collapse; width: 100%;">
                   <thead>
                     <tr>
@@ -521,6 +522,7 @@ $(document).ready(function() {
                   </tr>
                 `;
               });
+              summaryHtml += `<tr><td colspan="7" style="text-align: center;"><a href="https://rapidclean-pricing.powerappsportals.com/Product-Request-Approval" target="_blank">View Product Requests</a></td></tr>`;
               summaryHtml += `</tbody></table>`;
               $("#submissionSummary").html(summaryHtml);
   
