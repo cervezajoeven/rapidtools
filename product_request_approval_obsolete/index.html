@@ -6,8 +6,9 @@
   <title>Product Requests Table</title>
   <!-- Bootstrap CSS for styling -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  <!-- Firebase App & Firestore are loaded globally -->
+  <!-- Firebase App (the core Firebase SDK) is still loaded globally -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <!-- Firebase Firestore SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
   <link rel="stylesheet" href="style.css" />
@@ -54,21 +55,19 @@
           <th>RRP</th>
         </tr>
       </thead>
+      
       <tbody>
         <!-- Table rows will be added dynamically -->
       </tbody>
     </table>
   </div>
-  <!-- Load jQuery, Toastr, and Select2 -->
+  <!-- Load jQuery (required for Toastr and Select2) -->
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <!-- Toastr JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <!-- Select2 JS for searchable dropdowns -->
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  <!-- Custom Scripts (order matters!) -->
-  <script src="firebase-init.js"></script>
-  <script src="api.js"></script> 
-  <script src="helpers.js"></script>
-  <script src="table.js"></script>
-  <script src="events.js"></script>
-  <script src="main.js"></script>
+  <!-- Custom Script -->
+  <script src="script.js"></script>
 </body>
 </html>

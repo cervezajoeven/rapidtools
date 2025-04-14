@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>All Product Requests</title>
+  <!-- Bootstrap CSS for styling -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <!-- Firebase App (core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <!-- Firebase Firestore SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container mt-3">
+    <h2>All Product Requests</h2>
+    <table class="table table-bordered" id="allRequestsTable">
+      <thead>
+        <tr>
+          <th>Requestor Name</th>
+          <th>SKU</th>
+          <th>Product Name</th>
+          <th>Brand</th>
+          <th>Primary Supplier</th>
+          <th>Category</th>
+          <th>Purchase Price</th>
+          <th>Client MUP</th>
+          <th>Retail MUP</th>
+          <th>Client Price</th>
+          <th>RRP</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Table rows will be injected here -->
+      </tbody>
+    </table>
+  </div>
+  <script src="all-requests.js"></script>
+</body>
+</html>
