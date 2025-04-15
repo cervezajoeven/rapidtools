@@ -45,8 +45,113 @@ async function loadTableRows() {
     updateSupplierSelects(supplierList);
     updateCategorySelects(categoriesList);
   } catch (error) {
-    console.error("Error fetching Firestore documents:", error);
+    console.error("Error fetching Firestore product requests:", error);
   }
+}
+
+// ====================================================================
+// New Function: Search Markups Using Mixed Terms from Product Requests
+// ====================================================================
+async function searchMarkupsByProductRequestTerms() {
+  try {
+    // Query product_requests with status "request"
+    const requestSnapshot = await db.collection("product_requests")
+      .where("status", "==", "request")
+      .get();
+      
+    const productRequests = [];
+    requestSnapshot.forEach(doc => {
+      const data = doc.data();
+      data.id = doc.id;
+      productRequests.push(data);
+    });
+    console.log("Total product requests loaded:", productRequests.length);
+
+    // Extract unique, non-empty values from both 'brand' and 'primary_supplier'
+    const brandTerms = productRequests.map(req => (req.brand || "").trim());
+    const supplierTerms = productRequests.map(req => (req.primary_supplier || "").trim());
+    const combinedTerms = brandTerms.concat(supplierTerms);
+    
+    const searchTerms = Array.from(new Set(combinedTerms)).filter(term => term !== "");
+    console.log("Unique search terms from product requests (mixed):", searchTerms);
+
+    // Retrieve all documents from the "markups" collection once.
+    const markupsSnapshot = await db.collection("markups").get();
+    const allMarkups = [];
+    markupsSnapshot.forEach(doc => {
+      const data = doc.data();
+      data.id = doc.id;
+      allMarkups.push(data);
+    });
+    console.log("Total markups documents loaded:", allMarkups.length);
+
+    // Create an object to store search results for each term.
+    const results = {};
+    searchTerms.forEach(term => {
+      if (!term || term.trim() === "") {
+        console.log("Skipping empty term");
+        return;
+      }
+      // Filter the markups documents by a case-insensitive partial match on the "brand" field.
+      const matches = allMarkups.filter(doc => {
+        const brand = doc.brand ? doc.brand.toLowerCase() : "";
+        return brand.includes(term.toLowerCase());
+      });
+      results[term] = matches;
+      console.log(`Term "${term}" matched ${matches.length} markups.`);
+    });
+    
+    console.log("Final search results for each term:", results);
+    renderSearchResults(results);
+  } catch (error) {
+    console.error("Error searching markups by product request terms:", error);
+  }
+}
+
+// ====================================================================
+// New Function: Render Search Results into the Search Results Table
+// ====================================================================
+function renderSearchResults(results) {
+  const tableBody = document.querySelector("#searchResultsTable tbody");
+  if (!tableBody) return;
+  
+  // Clear existing contents.
+  tableBody.innerHTML = "";
+  
+  // Iterate over the search results object.
+  Object.keys(results).forEach(term => {
+    const docs = results[term];
+    docs.forEach(doc => {
+      const tr = document.createElement("tr");
+      
+      // Brand
+      const tdBrand = document.createElement("td");
+      tdBrand.textContent = doc.brand;
+      tr.appendChild(tdBrand);
+      
+      // Main Category
+      const tdMainCategory = document.createElement("td");
+      tdMainCategory.textContent = doc.main_category ? doc.main_category : "";
+      tr.appendChild(tdMainCategory);
+      
+      // Sub Category
+      const tdSubCategory = document.createElement("td");
+      tdSubCategory.textContent = doc.sub_category ? doc.sub_category : "";
+      tr.appendChild(tdSubCategory);
+      
+      // Description
+      const tdDescription = document.createElement("td");
+      tdDescription.textContent = doc.description ? doc.description : "";
+      tr.appendChild(tdDescription);
+      
+      // RRP Markup
+      const tdRrpMarkup = document.createElement("td");
+      tdRrpMarkup.textContent = (doc.rrp_markup || doc.rrp_markup === 0) ? doc.rrp_markup : "";
+      tr.appendChild(tdRrpMarkup);
+      
+      tableBody.appendChild(tr);
+    });
+  });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -72,5 +177,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadData();
   await loadTableRows();
   initEventHandlers();
+  // Use the mixed brand and supplier values from product requests as search terms.
+  await searchMarkupsByProductRequestTerms();
   hideLoader();
 });
