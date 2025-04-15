@@ -219,14 +219,26 @@ async function sendNewItems(newItemsArray) {
       console.log("Response from new API for SKU " + item.sku + ":", responseData);
       
       if (item.docId) {
+        // Retrieve the corresponding row to read updated values
+        const row = document.querySelector(`tr[data-doc-id="${item.docId}"]`);
+        const updatedCategory = row ? row.querySelector("td:nth-child(7) select").value : item.categoryId;
+        const updatedClientMup = row ? row.querySelector("td:nth-child(9) input").value : item.clientMup;
+        const updatedRetailMup = row ? row.querySelector("td:nth-child(10) input").value : item.retailMup;
+        const updatedClientPrice = row ? row.querySelector("td:nth-child(11) input").value : "";
+        const updatedRrp = row ? row.querySelector("td:nth-child(12) input").value : item.rrp;
+        
         db.collection("product_requests").doc(item.docId).update({
           status: "product_created",
-          product_creation_date: new Date().toISOString()
+          product_creation_date: new Date().toISOString(),
+          category: updatedCategory,
+          client_mup: parseFloat(updatedClientMup),
+          retail_mup: parseFloat(updatedRetailMup),
+          client_price: updatedClientPrice === "" ? null : parseFloat(updatedClientPrice),
+          rrp: parseFloat(updatedRrp)
         })
         .then(() => {
           toastr.success("Product created successfully for SKU: " + item.sku);
           // Clear the corresponding row from the table
-          const row = document.querySelector(`tr[data-doc-id="${item.docId}"]`);
           if (row && row.parentNode) {
             row.parentNode.removeChild(row);
           }
@@ -314,3 +326,10 @@ function applyCategoryToAllRows() {
   });
   alert("Category value applied to all rows.");
 }
+
+// ====================================================================
+// Delegated jQuery Event Listener for Category Dropdown Changes
+// ====================================================================
+$(document).on("change", "select.categorySelect", function(e) {
+  console.log("Category changed to id:", $(this).val());
+});
