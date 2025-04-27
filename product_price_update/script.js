@@ -38,7 +38,6 @@ const firebaseConfig = {
   appId: "1:39304689168:web:19e9d73377df109270bc95",
   measurementId: "G-PLE91"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -59,7 +58,7 @@ $(document).ready(function() {
     searching: false,
     lengthChange: false,
     columns: [
-      { orderable: false }, // checkbox column
+      { orderable: false }, // checkbox
       null, // SKU
       null, // Product Name
       null, // Brand
@@ -73,64 +72,75 @@ $(document).ready(function() {
     ]
   });
 
+  // ==== Helper: parse Categories into comma-separated names ====
+  function parseCategories(cats) {
+    const names = [];
+    if (Array.isArray(cats)) {
+      cats.forEach(wrapper => {
+        if (wrapper && typeof wrapper === 'object' && 'Category' in wrapper) {
+          const inner = wrapper.Category;
+          if (Array.isArray(inner)) {
+            inner.forEach(c => c.CategoryName && names.push(c.CategoryName));
+          } else if (inner && inner.CategoryName) {
+            names.push(inner.CategoryName);
+          }
+        } else if (typeof wrapper === 'string' && wrapper.trim()) {
+          names.push(wrapper.trim());
+        }
+      });
+    }
+    return names.join(', ');
+  }
+
+  // ==== Helper: extract client price (GroupID="2") from PriceGroups ====
+  function getClientPrice(priceGroups) {
+    if (!Array.isArray(priceGroups)) return '';
+    for (const wrapper of priceGroups) {
+      const pg = wrapper.PriceGroup;
+      if (Array.isArray(pg)) {
+        for (const p of pg) {
+          if (p && String(p.GroupID) === '2') return p.Price;
+        }
+      } else if (pg && String(pg.GroupID) === '2') {
+        return pg.Price;
+      }
+    }
+    return '';
+  }
+
   // ==== Load filter dropdown data ====
   (async function loadFilterData() {
     try {
-      // Brands
-      const brandRes = await fetch(endpoints.BRANDS_URL.endpoint, { method: endpoints.BRANDS_URL.method });
-      const brandJson = await brandRes.json();
-      const brands = endpoints.BRANDS_URL.response.dataPath.reduce((obj, key) => obj[key], brandJson);
+      const [bRes, sRes, cRes] = await Promise.all([
+        fetch(endpoints.BRANDS_URL.endpoint, { method: endpoints.BRANDS_URL.method }),
+        fetch(endpoints.SUPPLIER_URL.endpoint, { method: endpoints.SUPPLIER_URL.method }),
+        fetch(endpoints.CATEGORIES_URL.endpoint, { method: endpoints.CATEGORIES_URL.method })
+      ]);
+      const [bJson, sJson, cJson] = await Promise.all([bRes.json(), sRes.json(), cRes.json()]);
+
+      const brands     = endpoints.BRANDS_URL.response.dataPath.reduce((o,k)=>o[k], bJson);
+      const suppliers  = endpoints.SUPPLIER_URL.response.dataPath.reduce((o,k)=>o[k], sJson);
+      const categories = endpoints.CATEGORIES_URL.response.dataPath.reduce((o,k)=>o[k], cJson);
+
       $('#brand_filter').append('<option></option>');
-      brands.forEach(item => {
-        $('#brand_filter').append(new Option(item[endpoints.BRANDS_URL.response.itemField], item[endpoints.BRANDS_URL.response.itemField]));
-      });
-
-      // Primary Suppliers
-      const supRes = await fetch(endpoints.SUPPLIER_URL.endpoint, { method: endpoints.SUPPLIER_URL.method });
-      const supJson = await supRes.json();
-      const suppliers = endpoints.SUPPLIER_URL.response.dataPath.reduce((obj, key) => obj[key], supJson);
+      brands.forEach(i => $('#brand_filter').append(new Option(i[endpoints.BRANDS_URL.response.itemField], i[endpoints.BRANDS_URL.response.itemField])));
       $('#primary_supplier_filter').append('<option></option>');
-      suppliers.forEach(item => {
-        $('#primary_supplier_filter').append(new Option(item[endpoints.SUPPLIER_URL.response.itemField], item[endpoints.SUPPLIER_URL.response.itemField]));
-      });
-
-      // Categories
-      const catRes = await fetch(endpoints.CATEGORIES_URL.endpoint, { method: endpoints.CATEGORIES_URL.method });
-      const catJson = await catRes.json();
-      const categories = endpoints.CATEGORIES_URL.response.dataPath.reduce((obj, key) => obj[key], catJson);
+      suppliers.forEach(i => $('#primary_supplier_filter').append(new Option(i[endpoints.SUPPLIER_URL.response.itemField], i[endpoints.SUPPLIER_URL.response.itemField])));
       $('#category_filter').append('<option></option>');
-      categories.forEach(item => {
-        $('#category_filter').append(new Option(item.CategoryName, item.CategoryID));
-      });
+      categories.forEach(i => $('#category_filter').append(new Option(i.CategoryName, i.CategoryID)));
 
-      // Refresh Select2 to show new items
       $('#brand_filter, #primary_supplier_filter, #category_filter').trigger('change');
     } catch (e) {
-      console.error('Error loading filter data', e);
+      console.error('Error loading filter data:', e);
       toastr.error('Failed to load filter data');
     }
   })();
 
-  // ==== Existing event handlers (stubs) ====
-  $('#deleteChecked').on('click', function() {
-    // TODO: implement delete checked logic
-  });
-
-  $('#submitChecked').on('click', function() {
-    // TODO: implement submit checked logic
-  });
-
-  $('#applyCategoryBtn').on('click', function() {
-    // TODO: apply selected category to all rows
-  });
-  
-  $('#applyClientMupBtn').on('click', function() {
-    // TODO: apply selected client MUP to all rows
-  });
-  
-  $('#applyRetailMupBtn').on('click', function() {
-    // TODO: apply selected retail MUP to all rows
-  });
+  // ==== Stub handlers for other buttons ====
+  $('#deleteChecked').on('click',    () => { /* TODO */ });
+  $('#submitChecked').on('click',    () => { /* TODO */ });
+  $('#applyClientMupBtn').on('click',() => { /* TODO */ });
+  $('#applyRetailMupBtn').on('click',() => { /* TODO */ });
 
   // ==== Apply Filters button handler ====
   $('#submitFilters').on('click', async function() {
@@ -140,57 +150,32 @@ $(document).ready(function() {
     const brand    = $('#brand_filter').val();
     const supplier = $('#primary_supplier_filter').val();
     const category = $('#category_filter').val();
-
     if (sku)      f.SKU             = sku;
     if (model)    f.Model           = model;
     if (brand)    f.Brand           = brand;
     if (supplier) f.PrimarySupplier = supplier;
     if (category) f.CategoryID      = category;
-
-    // Static fields
     f.Active = true;
     f.OutputSelector = [
-      "SKU",
-      "Model",
-      "Categories",
-      "Brand",
-      "PrimarySupplier",
-      "RRP",
-      "DefaultPurchasePrice",
-      "PriceGroups",
-      "Misc02",
-      "Misc09"
+      "SKU","Model","Categories","Brand","PrimarySupplier",
+      "RRP","DefaultPurchasePrice","PriceGroups","Misc02","Misc09"
     ];
 
     try {
-      const response = await fetch(
+      const res  = await fetch(
         'https://prod-19.australiasoutheast.logic.azure.com:443/workflows/67422be18c5e4af0ad9291110dedb2fd/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=N_VRTyaFEkOUGjtwu8O56_L-qY6xwvHuGWEOvqKsoAk',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ Filter: f })
-        }
+        { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({Filter:f}) }
       );
+      console.log('❯ Raw response:', res);
+      const json = await res.json();
+      console.log('❯ Response JSON:', json);
 
-      console.log('Apply Filters raw response:', response);
-      const json = await response.json();
-      console.log('Apply Filters response JSON:', json);
+      const items = Array.isArray(json.Item) ? json.Item : [];
+      console.log('❯ items length:', items.length);
 
-      // figure out where the array lives:
-      const items = Array.isArray(json)
-        ? json
-        : Array.isArray(json.value)
-        ? json.value
-        : Array.isArray(json.results)
-        ? json.results
-        : [];
+      toastr[res.ok?'success':'error']( res.ok?'Filters applied successfully':'Error applying filters' );
+      if (!res.ok) throw new Error(JSON.stringify(json));
 
-      toastr[response.ok ? 'success' : 'error'](
-        response.ok ? 'Filters applied successfully' : 'Error applying filters'
-      );
-      if (!response.ok) throw new Error(JSON.stringify(json));
-
-      // Render into DataTable
       dataTable.clear();
       items.forEach(item => {
         dataTable.row.add([
@@ -199,17 +184,17 @@ $(document).ready(function() {
           item.Model,
           item.Brand,
           item.PrimarySupplier,
-          Array.isArray(item.Categories) ? item.Categories.join(', ') : item.Categories,
+          parseCategories(item.Categories),
           item.DefaultPurchasePrice,
-          '', // client MUP placeholder
-          '', // retail MUP placeholder
-          '', // client price placeholder
+          `<input type="number" step="0.01" class="form-control client-mup-input" value="${item.Misc02 ?? ''}" />`,
+          `<input type="number" step="0.01" class="form-control retail-mup-input" value="${item.Misc09 ?? ''}" />`,
+          getClientPrice(item.PriceGroups),
           item.RRP
         ]);
       });
       dataTable.draw();
     } catch (err) {
-      console.error('Error applying filters:', err);
+      console.error('Apply Filters error:', err);
       toastr.error('Error applying filters: ' + err.message);
     }
   });
