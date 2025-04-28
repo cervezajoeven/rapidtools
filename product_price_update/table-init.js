@@ -3,7 +3,7 @@
 let dataTable;
 
 $(function() {
-  // Initialize Select2
+  // Initialize Select2 for dropdown filters
   $('#brand_filter, #primary_supplier_filter, #category_filter').select2({
     theme: 'bootstrap-5',
     placeholder: 'Select a value',
@@ -11,21 +11,33 @@ $(function() {
     width: '100%'
   });
 
-  // Initialize DataTable
+  // Initialize DataTable with page-length selector (10, 30, 50, 100, All)
   dataTable = $('#productTable').DataTable({
     paging: true,
     pageLength: 10,
+    lengthChange: true,
+    lengthMenu: [
+      [10, 30, 50, 100, -1],
+      [10, 30, 50, 100, 'All']
+    ],
     info: true,
     searching: false,
-    lengthChange: false,
     columns: [
       { orderable: false }, // checkbox
-      null, null, null, null, null, null,
-      null, null, null, null
+      null, // SKU
+      null, // Product Name
+      null, // Brand
+      null, // Primary Supplier
+      null, // Category
+      null, // Purchase Price
+      null, // Client MUP
+      null, // Retail MUP
+      null, // Client Price
+      null  // RRP
     ]
   });
 
-  // Load dropdown data
+  // Load filter dropdown data
   loadFilterData();
 });
 
@@ -38,9 +50,9 @@ async function loadFilterData() {
     ]);
     const [bJson, sJson, cJson] = await Promise.all([bRes.json(), sRes.json(), cRes.json()]);
 
-    const brands     = endpoints.BRANDS_URL.response.dataPath.reduce((o,k)=>o[k], bJson);
-    const suppliers  = endpoints.SUPPLIER_URL.response.dataPath.reduce((o,k)=>o[k], sJson);
-    const categories = endpoints.CATEGORIES_URL.response.dataPath.reduce((o,k)=>o[k], cJson);
+    const brands     = endpoints.BRANDS_URL.response.dataPath.reduce((o, k) => o[k], bJson);
+    const suppliers  = endpoints.SUPPLIER_URL.response.dataPath.reduce((o, k) => o[k], sJson);
+    const categories = endpoints.CATEGORIES_URL.response.dataPath.reduce((o, k) => o[k], cJson);
 
     $('#brand_filter').append('<option></option>');
     brands.forEach(i =>

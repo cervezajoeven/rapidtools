@@ -18,7 +18,7 @@ const endpoints = {
       }
     },
     CATEGORIES_URL: {
-      endpoint: "https://prod-47.australiasoutheast.logic.azure.com:443/workflows/0d67bcf1bb64e78a2495f13a7498081/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=fJJzmNyuARuwEcNCoMuWwMS9kmWZQABw9kJXsUj9Wk8",
+      endpoint: "https://prod-47.australiasoutheast.logic.azure.com:443/workflows/0d67bc8f1bb64e78a2495f13a7498081/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=fJJzmNyuARuwEcNCoMuWwMS9kmWZQABw9kJXsUj9Wk8",
       method: "POST",
       response: {
         dataPath: ['message', 'Category'],

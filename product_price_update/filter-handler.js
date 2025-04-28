@@ -6,15 +6,18 @@ async function applyFilters() {
   const f = {
     Active: true,
     OutputSelector: [
-      "SKU","Model","Categories","Brand","PrimarySupplier",
-      "RRP","DefaultPurchasePrice","PriceGroups","Misc02","Misc09","InventoryID"
+      "SKU", "Model", "Categories", "Brand", "PrimarySupplier",
+      "RRP", "DefaultPurchasePrice", "PriceGroups", "Misc02", "Misc09", "InventoryID"
     ]
   };
 
   // parse multiline SKU textbox
   const skuRaw = $('#sku_filter').val().trim();
   if (skuRaw) {
-    const arr = skuRaw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const arr = skuRaw
+      .split(/\r?\n/)
+      .map(s => s.trim())
+      .filter(Boolean);
     if (arr.length) f.SKU = arr;
   }
 
@@ -52,11 +55,11 @@ async function applyFilters() {
         item.Brand,
         item.PrimarySupplier,
         parseCategories(item.Categories),
-        item.DefaultPurchasePrice,
-        buildNumberInput('client-mup-input', item.Misc02),
-        buildNumberInput('retail-mup-input', item.Misc09),
-        buildNumberInput('client-price-input', getClientPrice(item.PriceGroups)),
-        buildNumberInput('rrp-input', item.RRP)
+        buildNumberInput('purchase-price-input', item.DefaultPurchasePrice),      // ← now an input
+        buildNumberInput('client-mup-input',    item.Misc02),
+        buildNumberInput('retail-mup-input',    item.Misc09),
+        buildNumberInput('client-price-input',  getClientPrice(item.PriceGroups)),
+        buildNumberInput('rrp-input',           item.RRP)
       ]);
     });
 
