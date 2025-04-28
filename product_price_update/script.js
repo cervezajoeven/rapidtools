@@ -19,7 +19,7 @@ const endpoints = {
     }
   },
   CATEGORIES_URL: {
-    endpoint: "https://prod-47.australiasoutheast.logic.azure.com:443/workflows/0d67bc8f1bb64e78a2495f13a7498081/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=fJJzmNyuARuwEcNCoMuWwMS9kmWZQABw9kJXsUj9Wk8",
+    endpoint: "https://prod-47.australiasoutheast.logic.azure.com:443/workflows/0d67bcf1bb64e78a2495f13a7498081/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=fJJzmNyuARuwEcNCoMuWwMS9kmWZQABw9kJXsUj9Wk8",
     method: "POST",
     response: {
       dataPath: ['message', 'Category'],
@@ -137,8 +137,8 @@ $(document).ready(function() {
   })();
 
   // ==== Stub handlers for MUP buttons ====  
-  $('#applyClientMupBtn').on('click',() => { /* TODO */ });
-  $('#applyRetailMupBtn').on('click',() => { /* TODO */ });
+  $('#applyClientMupBtn').on('click', () => { /* TODO */ });
+  $('#applyRetailMupBtn').on('click', () => { /* TODO */ });
 
   // ==== Apply Filters button handler ====  
   $('#submitFilters').on('click', async function() {
@@ -262,11 +262,11 @@ $(document).ready(function() {
     const $row = $checked.first().closest('tr');
 
     // Extract values
-    const sku           = $row.find('td').eq(1).text().trim();
-    const clientMup     = parseFloat($row.find('.client-mup-input').val()) || 0;
-    const retailMup     = parseFloat($row.find('.retail-mup-input').val()) || 0;
-    const clientPrice   = parseFloat($row.find('.client-price-input').val()) || 0;
-    const rrp           = parseFloat($row.find('.rrp-input').val()) || 0;
+    const sku         = $row.find('td').eq(1).text().trim();
+    const clientMup   = parseFloat($row.find('.client-mup-input').val()) || 0;
+    const retailMup   = parseFloat($row.find('.retail-mup-input').val()) || 0;
+    const clientPrice = parseFloat($row.find('.client-price-input').val()) || 0;
+    const rrp         = parseFloat($row.find('.rrp-input').val()) || 0;
 
     // Build payload
     const payload = {
@@ -303,7 +303,10 @@ $(document).ready(function() {
       );
       const json = await res.json();
       if (!res.ok) throw new Error(JSON.stringify(json));
+
       toastr.success('Row submitted successfully');
+      // highlight the submitted row in light green
+      $row.addClass('table-success');
     } catch (err) {
       console.error('Submit Checked error:', err);
       toastr.error('Error submitting row: ' + err.message);
