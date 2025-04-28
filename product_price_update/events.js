@@ -5,7 +5,7 @@ function handleMultiPaste(e, className) {
     e.preventDefault();
     const text = e.originalEvent.clipboardData.getData('text/plain');
     const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-    const $allRows = $('#productTable tbody tr');
+    const $allRows = $(dataTable.rows().nodes());
     const startRowIdx = $allRows.index($(e.target).closest('tr'));
   
     lines.forEach((line, offset) => {
@@ -48,38 +48,46 @@ function handleMultiPaste(e, className) {
   });
   
   // Intercept paste to enable multi-row paste for each column
-  $(document).on('paste', '.purchase-price-input', function(e) {
-    handleMultiPaste(e, 'purchase-price-input');
-  });
-  $(document).on('paste', '.client-mup-input', function(e) {
-    handleMultiPaste(e, 'client-mup-input');
-  });
-  $(document).on('paste', '.retail-mup-input', function(e) {
-    handleMultiPaste(e, 'retail-mup-input');
-  });
-  $(document).on('paste', '.client-price-input', function(e) {
-    handleMultiPaste(e, 'client-price-input');
-  });
-  $(document).on('paste', '.rrp-input', function(e) {
-    handleMultiPaste(e, 'rrp-input');
+  const pasteCols = [
+    'purchase-price-input',
+    'client-mup-input',
+    'retail-mup-input',
+    'client-price-input',
+    'rrp-input'
+  ];
+  
+  pasteCols.forEach(className => {
+    $(document).on('paste', `.${className}`, function(e) {
+      // temporarily show all pages so we can paste across them
+      const oldLength = dataTable.page.len();
+      const oldPage   = dataTable.page();
+  
+      dataTable.page.len(-1).draw(false);
+      handleMultiPaste(e, className);
+  
+      dataTable.page.len(oldLength).draw(false);
+      dataTable.page(oldPage).draw(false);
+    });
   });
   
-  // Select-all header checkbox
+  // Select-all header checkbox: apply to all pages
   $('#selectAll').on('change', function() {
     const checked = this.checked;
-    $('#productTable tbody .row-checkbox').prop('checked', checked);
+    // use DataTables API to get all row nodes
+    $(dataTable.rows().nodes()).find('.row-checkbox').prop('checked', checked);
   });
   
-  // Keep header checkbox in sync with row checkboxes
+  // Keep header checkbox in sync with row checkboxes across all pages
   $(document).on('change', '.row-checkbox', function() {
-    const total = $('#productTable tbody .row-checkbox').length;
-    const selected = $('#productTable tbody .row-checkbox:checked').length;
-    $('#selectAll').prop('checked', total === selected);
+    const $allCheckboxes = $(dataTable.rows().nodes()).find('.row-checkbox');
+    const total    = $allCheckboxes.length;
+    const selected = $allCheckboxes.filter(':checked').length;
+    $('#selectAll').prop('checked', total > 0 && total === selected);
   });
   
   // Submit Checked Rows handler (supports multiple SKUs)
   $('#submitChecked').on('click', async function() {
-    const $checked = $('#productTable tbody .row-checkbox:checked');
+    const $checked = $(dataTable.rows().nodes()).find('.row-checkbox:checked');
     if ($checked.length === 0) {
       toastr.warning('Please select at least one row to submit');
       return;
