@@ -42,7 +42,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 $(document).ready(function() {
-  // ==== Initialize Select2 for dropdown filters ====
+  // ==== Initialize Select2 for dropdown filters ====  
   $('#brand_filter, #primary_supplier_filter, #category_filter').select2({
     theme: 'bootstrap-5',
     placeholder: 'Select a value',
@@ -50,7 +50,7 @@ $(document).ready(function() {
     width: '100%'
   });
 
-  // ==== Initialize DataTable ====
+  // ==== Initialize DataTable ====  
   const dataTable = $('#productTable').DataTable({
     paging: true,
     pageLength: 10,
@@ -72,7 +72,7 @@ $(document).ready(function() {
     ]
   });
 
-  // ==== Helper: parse Categories into comma-separated names ====
+  // ==== Helper: parse Categories into comma-separated names ====  
   function parseCategories(cats) {
     const names = [];
     if (Array.isArray(cats)) {
@@ -92,7 +92,7 @@ $(document).ready(function() {
     return names.join(', ');
   }
 
-  // ==== Helper: extract client price (GroupID="2") from PriceGroups ====
+  // ==== Helper: extract client price (GroupID="2") from PriceGroups ====  
   function getClientPrice(priceGroups) {
     if (!Array.isArray(priceGroups)) return '';
     for (const wrapper of priceGroups) {
@@ -108,7 +108,7 @@ $(document).ready(function() {
     return '';
   }
 
-  // ==== Load filter dropdown data ====
+  // ==== Load filter dropdown data ====  
   (async function loadFilterData() {
     try {
       const [bRes, sRes, cRes] = await Promise.all([
@@ -136,60 +136,77 @@ $(document).ready(function() {
     }
   })();
 
-  // ==== Stub handlers for other buttons ====
-  $('#deleteChecked').on('click',    () => { /* TODO */ });
-  $('#submitChecked').on('click',    () => { /* TODO */ });
+  // ==== Stub handlers for MUP buttons ====  
   $('#applyClientMupBtn').on('click',() => { /* TODO */ });
   $('#applyRetailMupBtn').on('click',() => { /* TODO */ });
 
-  // ==== Apply Filters button handler ====
+  // ==== Apply Filters button handler ====  
   $('#submitFilters').on('click', async function() {
     const f = {};
-    const sku      = $('#sku_filter').val().trim();
+
+    // Read and split SKUs from textarea into an array
+    const skuRaw = $('#sku_filter').val().trim();
+    if (skuRaw) {
+      const skuArr = skuRaw
+        .split(/\r?\n/)   // split by line
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (skuArr.length) {
+        f.SKU = skuArr;   // array payload
+      }
+    }
+
     const model    = $('#product_name_filter').val().trim();
     const brand    = $('#brand_filter').val();
     const supplier = $('#primary_supplier_filter').val();
     const category = $('#category_filter').val();
-    if (sku)      f.SKU             = sku;
     if (model)    f.Model           = model;
     if (brand)    f.Brand           = brand;
     if (supplier) f.PrimarySupplier = supplier;
     if (category) f.CategoryID      = category;
+
     f.Active = true;
     f.OutputSelector = [
       "SKU","Model","Categories","Brand","PrimarySupplier",
-      "RRP","DefaultPurchasePrice","PriceGroups","Misc02","Misc09"
+      "RRP","DefaultPurchasePrice","PriceGroups","Misc02","Misc09","InventoryID"
     ];
 
     try {
       const res  = await fetch(
         'https://prod-19.australiasoutheast.logic.azure.com:443/workflows/67422be18c5e4af0ad9291110dedb2fd/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=N_VRTyaFEkOUGjtwu8O56_L-qY6xwvHuGWEOvqKsoAk',
-        { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({Filter:f}) }
+        { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ Filter: f }) }
       );
-      console.log('❯ Raw response:', res);
       const json = await res.json();
-      console.log('❯ Response JSON:', json);
+      if (!res.ok) throw new Error(JSON.stringify(json));
 
       const items = Array.isArray(json.Item) ? json.Item : [];
-      console.log('❯ items length:', items.length);
-
-      toastr[res.ok?'success':'error']( res.ok?'Filters applied successfully':'Error applying filters' );
-      if (!res.ok) throw new Error(JSON.stringify(json));
+      toastr.success('Filters applied successfully');
 
       dataTable.clear();
       items.forEach(item => {
+        // SKU link
+        const skuCell = item.InventoryID
+          ? `<a href="https://www.rapidsupplies.com.au/_cpanel/products/view?id=${item.InventoryID}" target="_blank">${item.SKU}</a>`
+          : item.SKU;
+
+        const purchasePrice    = item.DefaultPurchasePrice;
+        const clientMupInput   = `<input type="number" step="0.01" class="form-control client-mup-input" value="${item.Misc02 ?? ''}" />`;
+        const retailMupInput   = `<input type="number" step="0.01" class="form-control retail-mup-input" value="${item.Misc09 ?? ''}" />`;
+        const clientPriceInput = `<input type="number" step="0.01" class="form-control client-price-input" value="${getClientPrice(item.PriceGroups)}" />`;
+        const rrpInput         = `<input type="number" step="0.01" class="form-control rrp-input" value="${item.RRP}" />`;
+
         dataTable.row.add([
           '<input type="checkbox" class="row-checkbox" />',
-          item.SKU,
+          skuCell,
           item.Model,
           item.Brand,
           item.PrimarySupplier,
           parseCategories(item.Categories),
-          item.DefaultPurchasePrice,
-          `<input type="number" step="0.01" class="form-control client-mup-input" value="${item.Misc02 ?? ''}" />`,
-          `<input type="number" step="0.01" class="form-control retail-mup-input" value="${item.Misc09 ?? ''}" />`,
-          getClientPrice(item.PriceGroups),
-          item.RRP
+          purchasePrice,
+          clientMupInput,
+          retailMupInput,
+          clientPriceInput,
+          rrpInput
         ]);
       });
       dataTable.draw();
@@ -198,4 +215,99 @@ $(document).ready(function() {
       toastr.error('Error applying filters: ' + err.message);
     }
   });
+
+  // ==== Recalculation handlers ====  
+  $(document).on('change', '.client-mup-input', function() {
+    const $row = $(this).closest('tr');
+    const purchasePrice = parseFloat($row.find('td').eq(6).text()) || 0;
+    const clientMup     = parseFloat($(this).val()) || 0;
+    const newClientPrice = (purchasePrice * 1.1) * clientMup;
+    $row.find('.client-price-input').val(newClientPrice.toFixed(2));
+  });
+
+  $(document).on('change', '.retail-mup-input', function() {
+    const $row = $(this).closest('tr');
+    const purchasePrice = parseFloat($row.find('td').eq(6).text()) || 0;
+    const retailMup     = parseFloat($(this).val()) || 0;
+    const newRrp        = (purchasePrice * 1.1) * retailMup;
+    $row.find('.rrp-input').val(newRrp.toFixed(2));
+  });
+
+  $(document).on('change', '.client-price-input', function() {
+    const $row = $(this).closest('tr');
+    const purchasePrice  = parseFloat($row.find('td').eq(6).text()) || 0;
+    const clientPrice    = parseFloat($(this).val()) || 0;
+    const newClientMup   = purchasePrice ? clientPrice / (purchasePrice * 1.1) : 0;
+    $row.find('.client-mup-input').val(newClientMup.toFixed(2));
+  });
+
+  $(document).on('change', '.rrp-input', function() {
+    const $row = $(this).closest('tr');
+    const purchasePrice  = parseFloat($row.find('td').eq(6).text()) || 0;
+    const rrp            = parseFloat($(this).val()) || 0;
+    const newRetailMup   = purchasePrice ? rrp / (purchasePrice * 1.1) : 0;
+    $row.find('.retail-mup-input').val(newRetailMup.toFixed(2));
+  });
+
+  // ==== Submit Checked Rows handler ====  
+  $('#submitChecked').on('click', async function() {
+    const $checked = $('#productTable tbody .row-checkbox:checked');
+    if ($checked.length === 0) {
+      toastr.warning('Please select one row to submit');
+      return;
+    }
+    if ($checked.length > 1) {
+      toastr.warning('Only one SKU can be processed at a time');
+    }
+    const $row = $checked.first().closest('tr');
+
+    // Extract values
+    const sku           = $row.find('td').eq(1).text().trim();
+    const clientMup     = parseFloat($row.find('.client-mup-input').val()) || 0;
+    const retailMup     = parseFloat($row.find('.retail-mup-input').val()) || 0;
+    const clientPrice   = parseFloat($row.find('.client-price-input').val()) || 0;
+    const rrp           = parseFloat($row.find('.rrp-input').val()) || 0;
+
+    // Build payload
+    const payload = {
+      Item: [
+        {
+          SKU: sku,
+          RRP: rrp,
+          Misc02: clientMup,
+          Misc09: retailMup,
+          PriceGroups: {
+            PriceGroup: [
+              {
+                Group: "Default Client Group",
+                Price: clientPrice
+              },
+              {
+                Group: "Default RRP (Dont Assign to clients)",
+                Price: rrp
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    try {
+      const res = await fetch(
+        'https://prod-06.australiasoutheast.logic.azure.com:443/workflows/a14abba8479c457bafd63fe32fd9fea4/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Evz4dRmWiP8p-hxjZxofNX1q_o_-ufQK2c_XI4Quxto',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(JSON.stringify(json));
+      toastr.success('Row submitted successfully');
+    } catch (err) {
+      console.error('Submit Checked error:', err);
+      toastr.error('Error submitting row: ' + err.message);
+    }
+  });
+
 });
