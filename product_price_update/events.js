@@ -1,46 +1,83 @@
 // events.js
 
-// Recalculation handlers
-$(document).on('change', '.client-mup-input', function() {
+// Helper to handle multi-row, single-column paste from Excel
+function handleMultiPaste(e, className) {
+    e.preventDefault();
+    const text = e.originalEvent.clipboardData.getData('text/plain');
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+    const $allRows = $('#productTable tbody tr');
+    const startRowIdx = $allRows.index($(e.target).closest('tr'));
+  
+    lines.forEach((line, offset) => {
+      const val = line.split('\t')[0]; // only first tab-separated column
+      const $row = $allRows.eq(startRowIdx + offset);
+      if (!$row.length) return;
+      const $input = $row.find(`.${className}`);
+      $input.val(val).trigger('input');
+    });
+  }
+  
+  // Recalculation on any typing, dragging, or paste
+  $(document).on('input', '.purchase-price-input, .client-mup-input, .retail-mup-input, .client-price-input, .rrp-input', function() {
     const $row = $(this).closest('tr');
     const price = parseFloat($row.find('.purchase-price-input').val()) || 0;
-    const mup   = parseFloat(this.value) || 0;
-    $row.find('.client-price-input').val(((price * 1.1) * mup).toFixed(2));
+  
+    if ($(this).hasClass('client-mup-input')) {
+      const mup = parseFloat(this.value) || 0;
+      $row.find('.client-price-input').val(((price * 1.1) * mup).toFixed(2));
+    } 
+    else if ($(this).hasClass('retail-mup-input')) {
+      const mup = parseFloat(this.value) || 0;
+      $row.find('.rrp-input').val(((price * 1.1) * mup).toFixed(2));
+    } 
+    else if ($(this).hasClass('client-price-input')) {
+      const cp = parseFloat(this.value) || 0;
+      $row.find('.client-mup-input').val((price ? cp / (price * 1.1) : 0).toFixed(2));
+    } 
+    else if ($(this).hasClass('rrp-input')) {
+      const rv = parseFloat(this.value) || 0;
+      $row.find('.retail-mup-input').val((price ? rv / (price * 1.1) : 0).toFixed(2));
+    } 
+    else if ($(this).hasClass('purchase-price-input')) {
+      // on purchase-price change, re-run all four recalculations
+      $row.find('.client-mup-input').trigger('input');
+      $row.find('.retail-mup-input').trigger('input');
+      $row.find('.client-price-input').trigger('input');
+      $row.find('.rrp-input').trigger('input');
+    }
   });
   
-  $(document).on('change', '.retail-mup-input', function() {
-    const $row = $(this).closest('tr');
-    const price = parseFloat($row.find('.purchase-price-input').val()) || 0;
-    const mup   = parseFloat(this.value) || 0;
-    $row.find('.rrp-input').val(((price * 1.1) * mup).toFixed(2));
+  // Intercept paste to enable multi-row paste for each column
+  $(document).on('paste', '.purchase-price-input', function(e) {
+    handleMultiPaste(e, 'purchase-price-input');
+  });
+  $(document).on('paste', '.client-mup-input', function(e) {
+    handleMultiPaste(e, 'client-mup-input');
+  });
+  $(document).on('paste', '.retail-mup-input', function(e) {
+    handleMultiPaste(e, 'retail-mup-input');
+  });
+  $(document).on('paste', '.client-price-input', function(e) {
+    handleMultiPaste(e, 'client-price-input');
+  });
+  $(document).on('paste', '.rrp-input', function(e) {
+    handleMultiPaste(e, 'rrp-input');
   });
   
-  $(document).on('change', '.client-price-input', function() {
-    const $row = $(this).closest('tr');
-    const price       = parseFloat($row.find('.purchase-price-input').val()) || 0;
-    const clientPrice = parseFloat(this.value) || 0;
-    $row.find('.client-mup-input').val((price ? clientPrice / (price * 1.1) : 0).toFixed(2));
+  // Select-all header checkbox
+  $('#selectAll').on('change', function() {
+    const checked = this.checked;
+    $('#productTable tbody .row-checkbox').prop('checked', checked);
   });
   
-  $(document).on('change', '.rrp-input', function() {
-    const $row = $(this).closest('tr');
-    const price = parseFloat($row.find('.purchase-price-input').val()) || 0;
-    const val   = parseFloat(this.value) || 0;
-    $row.find('.retail-mup-input').val((price ? val / (price * 1.1) : 0).toFixed(2));
+  // Keep header checkbox in sync with row checkboxes
+  $(document).on('change', '.row-checkbox', function() {
+    const total = $('#productTable tbody .row-checkbox').length;
+    const selected = $('#productTable tbody .row-checkbox:checked').length;
+    $('#selectAll').prop('checked', total === selected);
   });
   
-  // **New**: when purchase price changes, recalc all four columns
-  $(document).on('change', '.purchase-price-input', function() {
-    const $row = $(this).closest('tr');
-    // first recalc prices based on existing MUPs
-    $row.find('.client-mup-input').trigger('change');
-    $row.find('.retail-mup-input').trigger('change');
-    // then recalc MUPs based on the newly calculated prices
-    $row.find('.client-price-input').trigger('change');
-    $row.find('.rrp-input').trigger('change');
-  });
-  
-  // Submit Checked Rows handler (multiple SKUs + purchase price)
+  // Submit Checked Rows handler (supports multiple SKUs)
   $('#submitChecked').on('click', async function() {
     const $checked = $('#productTable tbody .row-checkbox:checked');
     if ($checked.length === 0) {
@@ -50,24 +87,24 @@ $(document).on('change', '.client-mup-input', function() {
   
     const items = [];
     $checked.each(function() {
-      const $row    = $(this).closest('tr');
-      const sku     = $row.find('td').eq(1).text().trim();
-      const price   = parseFloat($row.find('.purchase-price-input').val()) || 0;
-      const clientMup   = parseFloat($row.find('.client-mup-input').val()) || 0;
-      const retailMup   = parseFloat($row.find('.retail-mup-input').val()) || 0;
-      const clientPrice = parseFloat($row.find('.client-price-input').val()) || 0;
-      const rrp         = parseFloat($row.find('.rrp-input').val()) || 0;
+      const $row       = $(this).closest('tr');
+      const sku        = $row.find('td').eq(1).text().trim();
+      const price      = parseFloat($row.find('.purchase-price-input').val()) || 0;
+      const clientMup  = parseFloat($row.find('.client-mup-input').val()) || 0;
+      const retailMup  = parseFloat($row.find('.retail-mup-input').val()) || 0;
+      const clientPrice= parseFloat($row.find('.client-price-input').val()) || 0;
+      const rrpVal     = parseFloat($row.find('.rrp-input').val()) || 0;
   
       items.push({
         SKU: sku,
         DefaultPurchasePrice: price,
-        RRP: rrp,
+        RRP: rrpVal,
         Misc02: clientMup,
         Misc09: retailMup,
         PriceGroups: {
           PriceGroup: [
             { Group: "Default Client Group", Price: clientPrice },
-            { Group: "Default RRP (Dont Assign to clients)", Price: rrp }
+            { Group: "Default RRP (Dont Assign to clients)", Price: rrpVal }
           ]
         }
       });
@@ -90,9 +127,11 @@ $(document).on('change', '.client-mup-input', function() {
       toastr.success('Rows submitted successfully');
       const acks = (json.Item || []).map(i => i.SKU);
       $checked.each(function() {
-        const $r = $(this).closest('tr');
-        const s  = $r.find('td').eq(1).text().trim();
-        if (acks.includes(s)) $r.addClass('table-success');
+        const $r  = $(this).closest('tr');
+        const sku = $r.find('td').eq(1).text().trim();
+        if (acks.includes(sku)) {
+          $r.addClass('table-success');
+        }
       });
     } catch (err) {
       console.error('Submit Checked error:', err);
