@@ -17,7 +17,7 @@ $(document).on('change', '.client-mup-input', function() {
   
   $(document).on('change', '.client-price-input', function() {
     const $row = $(this).closest('tr');
-    const price     = parseFloat($row.find('td').eq(6).text()) || 0;
+    const price       = parseFloat($row.find('td').eq(6).text()) || 0;
     const clientPrice = parseFloat(this.value) || 0;
     $row.find('.client-mup-input').val((price ? clientPrice / (price * 1.1) : 0).toFixed(2));
   });
@@ -29,26 +29,25 @@ $(document).on('change', '.client-mup-input', function() {
     $row.find('.retail-mup-input').val((price ? val / (price * 1.1) : 0).toFixed(2));
   });
   
-  // Submit Checked Rows
+  // Submit Checked Rows handler (now supports multiple SKUs)
   $('#submitChecked').on('click', async function() {
     const $checked = $('#productTable tbody .row-checkbox:checked');
     if ($checked.length === 0) {
-      toastr.warning('Please select one row to submit');
+      toastr.warning('Please select at least one row to submit');
       return;
     }
-    if ($checked.length > 1) {
-      toastr.warning('Only one SKU can be processed at a time');
-    }
-    const $row = $checked.first().closest('tr');
   
-    const sku         = $row.find('td').eq(1).text().trim();
-    const clientMup   = parseFloat($row.find('.client-mup-input').val()) || 0;
-    const retailMup   = parseFloat($row.find('.retail-mup-input').val()) || 0;
-    const clientPrice = parseFloat($row.find('.client-price-input').val()) || 0;
-    const rrp         = parseFloat($row.find('.rrp-input').val()) || 0;
+    // Build payload with one entry per checked row
+    const items = [];
+    $checked.each(function() {
+      const $row       = $(this).closest('tr');
+      const sku        = $row.find('td').eq(1).text().trim();
+      const clientMup  = parseFloat($row.find('.client-mup-input').val()) || 0;
+      const retailMup  = parseFloat($row.find('.retail-mup-input').val()) || 0;
+      const clientPrice= parseFloat($row.find('.client-price-input').val()) || 0;
+      const rrp        = parseFloat($row.find('.rrp-input').val()) || 0;
   
-    const payload = {
-      Item: [{
+      items.push({
         SKU: sku,
         RRP: rrp,
         Misc02: clientMup,
@@ -59,8 +58,10 @@ $(document).on('change', '.client-mup-input', function() {
             { Group: "Default RRP (Dont Assign to clients)", Price: rrp }
           ]
         }
-      }]
-    };
+      });
+    });
+  
+    const payload = { Item: items };
   
     try {
       const res = await fetch(
@@ -74,11 +75,20 @@ $(document).on('change', '.client-mup-input', function() {
       const json = await res.json();
       if (!res.ok) throw new Error(JSON.stringify(json));
   
-      toastr.success('Row submitted successfully');
-      $row.addClass('table-success');
+      toastr.success('Rows submitted successfully');
+  
+      // Highlight only the rows ACKed by the API
+      const acks = (json.Item || []).map(i => i.SKU);
+      $checked.each(function() {
+        const $row = $(this).closest('tr');
+        const sku  = $row.find('td').eq(1).text().trim();
+        if (acks.includes(sku)) {
+          $row.addClass('table-success');
+        }
+      });
     } catch (err) {
       console.error('Submit Checked error:', err);
-      toastr.error('Error submitting row: ' + err.message);
+      toastr.error('Error submitting rows: ' + err.message);
     }
   });
   
