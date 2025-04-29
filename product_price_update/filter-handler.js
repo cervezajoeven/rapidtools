@@ -1,6 +1,11 @@
 // filter-handler.js
 
-$('#submitFilters').on('click', applyFilters);
+// When the “Apply Filters” button is clicked, log it and then run applyFilters
+$('#submitFilters').on('click', function() {
+  console.log('[UI] Apply Filters button clicked');
+  alert();
+  applyFilters();
+});
 
 async function applyFilters() {
   const f = {
@@ -31,6 +36,8 @@ async function applyFilters() {
   if (supplier) f.PrimarySupplier = supplier;
   if (category) f.CategoryID      = category;
 
+  console.log('[applyFilters] Sending filter request with payload:', f);
+
   try {
     const res = await fetch(
       'https://prod-19.australiasoutheast.logic.azure.com:443/workflows/67422be18c5e4af0ad9291110dedb2fd/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=N_VRTyaFEkOUGjtwu8O56_L-qY6xwvHuGWEOvqKsoAk',
@@ -40,10 +47,23 @@ async function applyFilters() {
         body: JSON.stringify({ Filter: f })
       }
     );
+    console.log('[applyFilters] Received response. Status:', res.status);
+
     const json = await res.json();
-    if (!res.ok) throw new Error(JSON.stringify(json));
+    console.log('[applyFilters] Parsed JSON response:', json);
+
+    if (!res.ok) {
+      console.warn('[applyFilters] Response not OK, throwing error:', json);
+      throw new Error(JSON.stringify(json));
+    }
 
     const items = Array.isArray(json.Item) ? json.Item : [];
+    if (items.length) {
+      console.log(`[applyFilters] Fetched ${items.length} items`);
+    } else {
+      console.warn('[applyFilters] No items fetched from API');
+    }
+
     toastr.success('Filters applied successfully');
     dataTable.clear();
 
@@ -55,7 +75,7 @@ async function applyFilters() {
         item.Brand,
         item.PrimarySupplier,
         parseCategories(item.Categories),
-        buildNumberInput('purchase-price-input', item.DefaultPurchasePrice),      // ← now an input
+        buildNumberInput('purchase-price-input', item.DefaultPurchasePrice),
         buildNumberInput('client-mup-input',    item.Misc02),
         buildNumberInput('retail-mup-input',    item.Misc09),
         buildNumberInput('client-price-input',  getClientPrice(item.PriceGroups)),
@@ -64,8 +84,9 @@ async function applyFilters() {
     });
 
     dataTable.draw();
+    console.log('[applyFilters] Table updated with new items');
   } catch (err) {
-    console.error('Apply Filters error:', err);
+    console.error('[applyFilters] Error applying filters:', err);
     toastr.error('Error applying filters: ' + err.message);
   }
 }
