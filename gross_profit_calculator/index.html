@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Home Page - Order Details</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="global-container">
+    <!-- Order Details Container -->
+    <div class="order-container">
+      <h1>Gross Profit Calculator</h1>
+      <!-- Input and submit button -->
+      <div class="input-area">
+        <label for="orderIdInput">Order ID:</label>
+        <input type="text" id="orderIdInput" placeholder="Enter Order ID">
+        <button id="submitOrder">Submit</button>
+      </div>
+      <!-- Container for customer information -->
+      <div id="orderInfo" class="order-info">
+        <!-- Customer info will be injected here -->
+      </div>
+      <!-- Row for legends and table -->
+      <div class="row">
+        <div class="col-12">
+          <!-- Static Legends -->
+          <div class="table-legends">
+            <span class="legend-item cost-price-legend">Cost Price has no stock history it's using Default Price</span>
+            <span class="legend-item gp-legend">Gross Profit Percentage GPP should be above 20% threshold</span>
+            <span class="legend-item green-legend">Unit Price is equal to the default price</span>
+            <span class="legend-item blue-legend">Unit Price is lower than the default price indicating a Special Pricing for the customer</span>
+          </div>
+          <!-- Responsive Table -->
+          <div class="table-responsive">
+            <table id="orderLineTable">
+              <thead>
+                <tr>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Product Name</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">SKU</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Quantity</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Cost Price</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">RRP</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Unit Price</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Percent Discount</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Accumulated Discount</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Unit Price Discounted</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Gross Profit Percentage</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">Total</th>
+                  <th align="left" bgcolor="rgb(0, 120, 215)">
+                    Save Discount Price
+                    <input type="checkbox" id="toggleSaveDiscount" style="margin-left: 10px;">
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Order line rows will be inserted here -->
+              </tbody>
+            </table>
+          </div>
+          <!-- New Submit Button -->
+          <div class="submit-area">
+            <button id="applyPricingBtn" disabled>Apply Customer Pricing to Maropost</button>
+            <!-- Notification area for save results -->
+            <div id="maropostNotification"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Additional Layout Section -->
+  <div class="section-block">
+    <div class="container-flex">
+      <div class="column-block"></div>
+    </div>
+  </div>
+  <div class="row sectionBlockLayout text-start">
+    <div class="container">
+      <div class="col-lg-12 columnBlockLayout"></div>
+    </div>
+  </div>
+
+  <!-- load scripts in dependency order -->
+  <script src="config.js"></script>
+  <script src="services.order.js"></script>
+  <script src="services.customer.js"></script>
+  <script src="services.groupMapping.js"></script>
+  <script src="services.pricing.js"></script>
+  <script src="services.neto.js"></script>
+  <script src="services.firestore.js"></script>
+  <script src="utils.dom.js"></script>
+  <script src="utils.progressBar.js"></script>
+  <script src="controllers.order.js"></script>
+  <script src="controllers.customer.js"></script>
+  <script src="controllers.pricing.js"></script>
+  <script src="main.js"></script>
+</body>
+</html> 
