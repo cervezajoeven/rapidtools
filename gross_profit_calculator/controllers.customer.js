@@ -10,6 +10,9 @@
       const orderInfoDiv = document.getElementById('orderInfo');
       const applyPricingBtn = document.getElementById('applyPricingBtn');
       
+      // Clear the customer loader
+      App.Controllers.Order.hideCustomerLoader();
+      
       if (!data?.Customer?.length) {
         orderInfoDiv.textContent = "No customer information found.";
         applyPricingBtn.disabled = true;
@@ -22,7 +25,19 @@
       const customerUserGroup = customer.UserGroup || "N/A";
       
       try {
+        // Show loading while fetching group mappings
+        orderInfoDiv.innerHTML = `
+          <div class="loader-container active" id="mappingLoader">
+            <span class="loader"></span>
+            <div class="loader-text">Loading group mappings...</div>
+          </div>
+        `;
+        
         const mappingArray = await App.Services.GroupMapping.fetchAll();
+        
+        // Remove the mapping loader
+        const mappingLoader = document.getElementById('mappingLoader');
+        if (mappingLoader) mappingLoader.remove();
         
         // Find the group mappings
         const orderMapping = mappingArray.find(item => item.GroupID === orderUserGroup);
@@ -42,10 +57,14 @@
         
         // Create HTML for customer info
         let html = `
-          <div class="order-info">
-            <span><strong>Customer Name:</strong> ${customerName}</span><br/>
-            <span><strong>Order User Group:</strong> <span class="${groupClass}">${orderGroupName} (ID: ${orderUserGroup})</span></span><br/>
-            <span><strong>Current User Group:</strong> ${customerGroupName} (ID: ${customerGroupID})</span>
+          <div class="info-block">
+            <strong>Customer Name:</strong> ${customerName}
+          </div>
+          <div class="info-block">
+            <strong>Order User Group:</strong> <span class="${groupClass}">${orderGroupName} (ID: ${orderUserGroup})</span>
+          </div>
+          <div class="info-block">
+            <strong>Current User Group:</strong> ${customerGroupName} (ID: ${customerGroupID})
           </div>`;
         
         // Add notification if groups don't match
@@ -64,10 +83,13 @@
       } catch(error) {
         console.error(error);
         orderInfoDiv.innerHTML = `
-          <div class="order-info">
-            <span><strong>Customer Name:</strong> ${customerName}</span>
-            <span><strong>Current User Group:</strong> ${customerUserGroup}</span>
-          </div>`;
+          <div class="info-block">
+            <strong>Customer Name:</strong> ${customerName}
+          </div>
+          <div class="info-block">
+            <strong>Current User Group:</strong> ${customerUserGroup}
+          </div>
+          <div class="notification">Error loading group mappings: ${error.message || 'Unknown error'}</div>`;
         applyPricingBtn.disabled = true;
       }
     }

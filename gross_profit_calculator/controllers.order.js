@@ -16,8 +16,13 @@
       const note = document.getElementById("maropostNotification");
       note.textContent = "";
       
-      const pb = new App.Utils.ProgressBar();
-      pb.show();
+      // Show loader in table
+      this.showTableLoader("Loading order data...");
+      
+      // Show customer info loader
+      this.showCustomerLoader();
+      
+      App.Utils.showProgressBar();
 
       try {
         // 1. Order lines
@@ -30,11 +35,72 @@
         if (user) {
           const cust = await App.Services.Customer.fetchInfo(user);
           App.Controllers.Customer.render(cust, grp);
+        } else {
+          // No user info available, clear the loader
+          this.hideCustomerLoader();
         }
       } catch(err) {
         console.error(err);
+        // Show error message in the table
+        const tbody = document.querySelector("#orderLineTable tbody");
+        tbody.innerHTML = `<tr><td colspan="12" class="notification">Error loading data: ${err.message || 'Unknown error'}</td></tr>`;
+        // Clear customer loader on error
+        this.hideCustomerLoader();
       } finally {
-        pb.hide();
+        App.Utils.hideProgressBar();
+      }
+    },
+
+    /**
+     * Show loader in the table body
+     */
+    showTableLoader: function(message) {
+      const tbody = document.querySelector("#orderLineTable tbody");
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="12" style="padding: 0; border: none;">
+            <div class="loader-container active" id="tableLoader">
+              <span class="loader"></span>
+              <div class="loader-text">${message || 'Loading...'}</div>
+            </div>
+          </td>
+        </tr>
+      `;
+    },
+    
+    /**
+     * Hide table loader
+     */
+    hideTableLoader: function() {
+      const loaderContainer = document.querySelector("#tableLoader");
+      if (loaderContainer) {
+        const row = loaderContainer.closest('tr');
+        if (row) {
+          row.remove();
+        }
+      }
+    },
+    
+    /**
+     * Show loader in customer info area
+     */
+    showCustomerLoader: function() {
+      const customerInfo = document.getElementById("orderInfo");
+      customerInfo.innerHTML = `
+        <div class="loader-container active" id="customerLoader">
+          <span class="loader"></span>
+          <div class="loader-text">Loading customer information...</div>
+        </div>
+      `;
+    },
+    
+    /**
+     * Hide customer info loader
+     */
+    hideCustomerLoader: function() {
+      const loaderContainer = document.querySelector("#customerLoader");
+      if (loaderContainer) {
+        loaderContainer.remove();
       }
     },
 
@@ -42,10 +108,15 @@
      * Render table with order data.
      */
     renderTable: function(data) {
+      const self = this; // Store reference to 'this' for use in callbacks
+      
       return new Promise((resolve) => {
         const tbody = document.querySelector("#orderLineTable tbody");
         const costPriceMapping = {};
         const defaultPriceMapping = {};
+        
+        // Clear any existing loader first
+        self.hideTableLoader();
         
         if (data?.Order?.length) {
           data.Order.forEach(order => {
@@ -214,16 +285,59 @@
         }
         
         // Fetch cost and default prices for SKUs
+        if (Object.keys(costPriceMapping).length > 0 || Object.keys(defaultPriceMapping).length > 0) {
+          // Show loader for price fetching in a separate row
+          const loaderRow = document.createElement('tr');
+          loaderRow.id = "priceLoaderRow";
+          loaderRow.style.backgroundColor = "transparent";
+          
+          const loaderCell = document.createElement('td');
+          loaderCell.colSpan = 12;
+          loaderCell.style.padding = "10px 0";
+          loaderCell.style.border = "none";
+          
+          loaderCell.innerHTML = `
+            <div class="loader-container active" style="min-height: 60px; padding: 10px 0;">
+              <span class="loader" style="width: 24px; height: 24px;"></span>
+              <div class="loader-text">Fetching pricing information...</div>
+            </div>
+          `;
+          
+          loaderRow.appendChild(loaderCell);
+          tbody.appendChild(loaderRow);
+        }
+        
+        // Fetch cost and default prices for SKUs
         if (Object.keys(costPriceMapping).length > 0) {
           App.Services.Pricing.updateCostPrices(costPriceMapping).then(() => {
             if (Object.keys(defaultPriceMapping).length > 0) {
-              App.Services.Pricing.updateDefaultPrices(defaultPriceMapping).then(resolve);
-            } else resolve();
+              App.Services.Pricing.updateDefaultPrices(defaultPriceMapping).then(() => {
+                // Remove price loader row if it exists
+                const priceLoaderRow = document.getElementById("priceLoaderRow");
+                if (priceLoaderRow) priceLoaderRow.remove();
+                resolve();
+              });
+            } else {
+              // Remove price loader row if it exists
+              const priceLoaderRow = document.getElementById("priceLoaderRow");
+              if (priceLoaderRow) priceLoaderRow.remove();
+              resolve();
+            }
           });
         } else {
           if (Object.keys(defaultPriceMapping).length > 0) {
-            App.Services.Pricing.updateDefaultPrices(defaultPriceMapping).then(resolve);
-          } else resolve();
+            App.Services.Pricing.updateDefaultPrices(defaultPriceMapping).then(() => {
+              // Remove price loader row if it exists
+              const priceLoaderRow = document.getElementById("priceLoaderRow");
+              if (priceLoaderRow) priceLoaderRow.remove();
+              resolve();
+            });
+          } else {
+            // Remove price loader row if it exists
+            const priceLoaderRow = document.getElementById("priceLoaderRow");
+            if (priceLoaderRow) priceLoaderRow.remove();
+            resolve();
+          }
         }
       });
     }
