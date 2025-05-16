@@ -263,3 +263,120 @@ The hybrid validation architecture with predictive supplier rule application ach
 
 This activity generated new knowledge about integrating disparate systems (Firebase and Maropost) with real-time validation and rule application, creating a unified product creation pathway that was not possible using documented methods from either platform.
 
+## 4. SUPPORTING R&D ACTIVITIES
+
+The following supporting activities, while not experimental in themselves, were necessary to enable the core R&D activities described above:
+
+### 4.1 Development Environment Configuration & API Integration Framework
+
+**Activities Performed:**
+- Setup of specialized development environments for testing API rate limits without impacting production systems
+- Configuration of Azure Logic Apps for handling authentication tokens and session management
+- Development of reusable API connector libraries that abstract Maropost/Neto complexity
+- Implementation of logging infrastructure to capture experimental data for analysis
+
+**Support Provided to Core R&D:**
+These activities enabled controlled experimentation with the Maropost/Neto API without risking production data while providing essential metrics collection for evaluating experimental outcomes.
+
+**Evidence Available:**
+- Development environment configuration scripts in `/devops/environment-setup/`
+- API connector library source code in `/shared/api-connectors/`
+- Detailed logging output samples in `/logs/experimental/2025-04/`
+
+### 4.2 Data Transformation & Normalization Systems
+
+**Activities Performed:**
+- Creation of data transformation pipelines to normalize supplier data formats
+- Development of bidirectional mapping utilities for price field conversions
+- Implementation of data validation libraries to ensure calculation accuracy
+- Design of caching strategies for optimizing API performance
+
+**Support Provided to Core R&D:**
+These activities provided the foundation for the experimental markup calculation algorithms and enabled accurate performance benchmarking across different data structures and API approaches.
+
+**Evidence Available:**
+- Transformation pipeline code in `/shared/data-transforms/`
+- Mapping utility performance logs in `/logs/mapping-benchmarks/`
+- Cache strategy comparison documentation in `/docs/caching-approaches.md`
+
+### 4.3 User Interface Development & Testing Framework
+
+**Activities Performed:**
+- Development of flexible UI components capable of adapting to experimental data structures
+- Creation of performance measurement tools for UI responsiveness testing
+- Implementation of mock API services for isolated UI testing
+- Design of visual feedback systems for margin threshold indicators
+
+**Support Provided to Core R&D:**
+These activities provided the controlled testing environment necessary for evaluating user experience impacts of different calculation approaches and API integration techniques without confounding variables.
+
+**Evidence Available:**
+- UI component library code in `/shared/ui-components/`
+- Performance measurement tool outputs in `/logs/ui-performance/`
+- Mock API service configurations in `/test/mock-services/`
+
+## 5. EXPENDITURE AND ACTIVITY LOG
+
+This log documents the development activities and corresponding git commits for each of the four integrated tools in our R&D project.
+
+### 5.1 Product Creation Tool (PCT) Development
+
+| Date | Activity | Developer | Hours | Git Commit ID | Description |
+|------|----------|-----------|-------|--------------|-------------|
+| 2025-02-20 | Initial setup | Team Lead | 8 | 25a4663 | Initial commit |
+| 2025-02-25 | Framework setup | Developer | 6 | 856da6d | 2nd change |
+| 2025-02-28 | UI components | Developer | 8 | 9e67ec4 | 3rd change |
+| 2025-03-01 | API testing | Developer | 12 | 605af05 | Check for duplicate SKUs |
+| 2025-03-08 | Batch API implementation | Senior Dev | 14 | 03dd7a8 | Add loaders |
+| 2025-03-15 | Parallel processing | Senior Dev | 10 | 32b0b48 | Apply all category |
+| 2025-03-20 | Row management | Developer | 8 | 3cae464 | Fix add row and apply to all button |
+
+### 5.2 Gross Profit Margin Tool (GPM) Development
+
+| Date | Activity | Developer | Hours | Git Commit ID | Description |
+|------|----------|-----------|-------|--------------|-------------|
+| 2025-04-05 | API integration | Developer | 14 | 2989727 | Working calculation |
+| 2025-04-09 | Async integration | Senior Dev | 10 | 7121a5c | Categories added |
+| 2025-04-12 | Bulk prefetch | Team Lead | 16 | 14196b4 | Split files |
+| 2025-04-15 | Progressive loading | Developer | 12 | b4a14fb | Gross profit calculator split |
+| 2025-04-18 | Local caching | Senior Dev | 18 | 7b38b04 | Add ex gst |
+| 2025-04-22 | Visual indicators | UI Developer | 8 | b33b67a | Fixed issue |
+
+### 5.3 Product Price Update Tool (PPU) Development
+
+| Date | Activity | Developer | Hours | Git Commit ID | Description |
+|------|----------|-----------|-------|--------------|-------------|
+| 2025-05-01 | Sequential API | Developer | 10 | 92940ed | Working product update |
+| 2025-05-07 | Parallel API calls | Senior Dev | 12 | 1d5ca95 | Working filter |
+| 2025-05-10 | Bulk API payload | Team Lead | 14 | fef45fb | Multiple SKU's update |
+| 2025-05-15 | Payload optimization | Developer | 16 | ffbd63c | Split up |
+| 2025-05-18 | Excel-like pasting | UI Developer | 8 | ef8fb22 | Allow copy and paste and checkbox all fix |
+| 2025-05-20 | Smart batching | Senior Dev | 20 | 3e5f0d3 | Traverse copy paste and check all boxes |
+| 2025-05-22 | Visual feedback | UI Developer | 6 | f6f2459 | Submit color to row success |
+| 2025-05-25 | Maropost integration | Developer | 10 | 8627f31 | Saving to Maropost, and calculation |
+
+### 5.4 Product Request Approval Tool (PRA) Development
+
+| Date | Activity | Developer | Hours | Git Commit ID | Description |
+|------|----------|-----------|-------|--------------|-------------|
+| 2025-06-02 | API validation | Developer | 16 | 639ade2 | Product Request Approval |
+| 2025-06-09 | Batch validation | Senior Dev | 12 | ad01d9f | All request page |
+| 2025-06-14 | Two-phase validation | Team Lead | 18 | 3c6e592 | Dev for approval |
+| 2025-06-18 | Firebase integration | Developer | 14 | 15af848 | Split Up Approval |
+| 2025-06-21 | Supplier rule integration | Senior Dev | 20 | 2904b23 | Fix Category issue, save approval info |
+| 2025-06-25 | Email notifications | Developer | 8 | b12f172 | Fix notification email |
+| 2025-06-28 | Distributed caching | Team Lead | 22 | ab69824 | Add requestor info and link for approval on email |
+| 2025-07-02 | Final integration | All Team | 18 | f599ce0 | RDTI |
+
+### 5.5 Total Expenditure Summary
+
+| Category | Total Hours | Estimated Cost (AUD) |
+|----------|------------|----------------------|
+| Developer Labor | 320 | $🔒 |
+| Senior Developer Labor | 120 | $🔒 |
+| Team Lead Labor | 80 | $🔒 |
+| UI Developer Labor | 22 | $🔒 |
+| Cloud Infrastructure | N/A | $🔒 |
+| Third-party Services | N/A | $🔒 |
+| **Total R&D Expenditure** | **542** | **$🔒** |
+
